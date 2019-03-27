@@ -155,8 +155,7 @@ CoSELayout.prototype.tick = function() {
       } 
     }
 
-    this.coolingFactor = this.initialCoolingFactor *
-            ((this.maxIterations - this.totalIterations) / this.maxIterations);
+    this.coolingFactor = this.coolingFactor * 0.8;
     this.animationPeriod = Math.ceil(this.initialAnimationPeriod * Math.sqrt(this.coolingFactor));
   }
   // Operations while tree is growing again 
