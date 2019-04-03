@@ -86,6 +86,9 @@ module.exports = __WEBPACK_EXTERNAL_MODULE_0__;
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
+"use strict";
+
+
 var FDLayoutConstants = __webpack_require__(0).FDLayoutConstants;
 
 function CoSEConstants() {}
@@ -108,6 +111,9 @@ module.exports = CoSEConstants;
 /* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
+"use strict";
+
+
 var FDLayoutEdge = __webpack_require__(0).FDLayoutEdge;
 
 function CoSEEdge(source, target, vEdge) {
@@ -124,6 +130,9 @@ module.exports = CoSEEdge;
 /***/ }),
 /* 3 */
 /***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
 
 var LGraph = __webpack_require__(0).LGraph;
 
@@ -142,6 +151,9 @@ module.exports = CoSEGraph;
 /* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
+"use strict";
+
+
 var LGraphManager = __webpack_require__(0).LGraphManager;
 
 function CoSEGraphManager(layout) {
@@ -158,6 +170,9 @@ module.exports = CoSEGraphManager;
 /***/ }),
 /* 5 */
 /***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
 
 var FDLayoutNode = __webpack_require__(0).FDLayoutNode;
 var IMath = __webpack_require__(0).IMath;
@@ -257,6 +272,9 @@ module.exports = CoSENode;
 /***/ }),
 /* 6 */
 /***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
 
 var FDLayout = __webpack_require__(0).FDLayout;
 var CoSEGraphManager = __webpack_require__(4);
@@ -364,7 +382,9 @@ CoSELayout.prototype.classicLayout = function () {
         // Update nodes that gravity will be applied
         this.graphManager.resetAllNodesToApplyGravitation();
         var allNodes = new Set(this.getAllNodes());
-        var intersection = this.nodesWithGravity.filter(x => allNodes.has(x));
+        var intersection = this.nodesWithGravity.filter(function (x) {
+          return allNodes.has(x);
+        });
         this.graphManager.setAllNodesToApplyGravitation(intersection);
 
         this.positionNodesRandomly();
@@ -410,7 +430,9 @@ CoSELayout.prototype.tick = function () {
         // Update nodes that gravity will be applied
         this.graphManager.resetAllNodesToApplyGravitation();
         var allNodes = new Set(this.getAllNodes());
-        var intersection = this.nodesWithGravity.filter(x => allNodes.has(x));
+        var intersection = this.nodesWithGravity.filter(function (x) {
+          return allNodes.has(x);
+        });
         this.graphManager.setAllNodesToApplyGravitation(intersection);
 
         this.graphManager.updateBounds();
@@ -1378,7 +1400,7 @@ module.exports = CoSELayout;
 "use strict";
 
 
-let coseBase = {};
+var coseBase = {};
 
 coseBase.layoutBase = __webpack_require__(0);
 coseBase.CoSEConstants = __webpack_require__(1);
