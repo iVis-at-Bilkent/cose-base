@@ -9,7 +9,6 @@ const MIN = env.MIN;
 const PROD = NODE_ENV === 'production';
 
 let config = {
-  mode: 'none',
   devtool: PROD ? false : 'inline-source-map',
   entry: './index.js',
   output: {

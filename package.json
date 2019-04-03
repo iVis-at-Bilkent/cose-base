@@ -21,6 +21,7 @@
     "babel-core": "^6.24.1",
     "babel-loader": "^7.0.0",
     "babel-preset-env": "^1.5.1",
+    "camelcase": "^4.1.0",
     "cpy-cli": "^1.0.1",
     "cross-env": "^5.1.6",
     "eslint": "^3.19.0",
@@ -29,9 +30,8 @@
     "rimraf": "^2.6.2",
     "update": "^0.7.4",
     "updater-license": "^1.0.0",
-    "webpack": "^4.29.0",
-    "webpack-cli": "^3.2.1",
-    "webpack-dev-server": "^3.1.14"
+    "webpack": "^2.6.1",
+    "webpack-dev-server": "^2.4.5"
   },
   "dependencies": {
     "layout-base": "https://github.com/iVis-at-Bilkent/layout-base#unstable"

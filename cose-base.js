@@ -7,7 +7,7 @@
 		exports["coseBase"] = factory(require("layout-base"));
 	else
 		root["coseBase"] = factory(root["layoutBase"]);
-})(window, function(__WEBPACK_EXTERNAL_MODULE__1__) {
+})(this, function(__WEBPACK_EXTERNAL_MODULE_0__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -43,35 +43,18 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// expose the module cache
 /******/ 	__webpack_require__.c = installedModules;
 /******/
+/******/ 	// identity function for calling harmony imports with the correct context
+/******/ 	__webpack_require__.i = function(value) { return value; };
+/******/
 /******/ 	// define getter function for harmony exports
 /******/ 	__webpack_require__.d = function(exports, name, getter) {
 /******/ 		if(!__webpack_require__.o(exports, name)) {
-/******/ 			Object.defineProperty(exports, name, { enumerable: true, get: getter });
+/******/ 			Object.defineProperty(exports, name, {
+/******/ 				configurable: false,
+/******/ 				enumerable: true,
+/******/ 				get: getter
+/******/ 			});
 /******/ 		}
-/******/ 	};
-/******/
-/******/ 	// define __esModule on exports
-/******/ 	__webpack_require__.r = function(exports) {
-/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 		}
-/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 	};
-/******/
-/******/ 	// create a fake namespace object
-/******/ 	// mode & 1: value is a module id, require it
-/******/ 	// mode & 2: merge all properties of value into the ns
-/******/ 	// mode & 4: return value when already ns object
-/******/ 	// mode & 8|1: behave like require
-/******/ 	__webpack_require__.t = function(value, mode) {
-/******/ 		if(mode & 1) value = __webpack_require__(value);
-/******/ 		if(mode & 8) return value;
-/******/ 		if((mode & 4) && typeof value === 'object' && value && value.__esModule) return value;
-/******/ 		var ns = Object.create(null);
-/******/ 		__webpack_require__.r(ns);
-/******/ 		Object.defineProperty(ns, 'default', { enumerable: true, value: value });
-/******/ 		if(mode & 2 && typeof value != 'string') for(var key in value) __webpack_require__.d(ns, key, function(key) { return value[key]; }.bind(null, key));
-/******/ 		return ns;
 /******/ 	};
 /******/
 /******/ 	// getDefaultExport function for compatibility with non-harmony modules
@@ -89,41 +72,21 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// __webpack_public_path__
 /******/ 	__webpack_require__.p = "";
 /******/
-/******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 0);
+/******/ 	return __webpack_require__(__webpack_require__.s = 7);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-"use strict";
-
-
-let coseBase = {};
-
-coseBase.layoutBase = __webpack_require__(1);
-coseBase.CoSEConstants = __webpack_require__(2);
-coseBase.CoSEEdge = __webpack_require__(3);
-coseBase.CoSEGraph = __webpack_require__(4);
-coseBase.CoSEGraphManager = __webpack_require__(5);
-coseBase.CoSELayout = __webpack_require__(6);
-coseBase.CoSENode = __webpack_require__(7);
-
-module.exports = coseBase;
+module.exports = __WEBPACK_EXTERNAL_MODULE_0__;
 
 /***/ }),
 /* 1 */
-/***/ (function(module, exports) {
-
-module.exports = __WEBPACK_EXTERNAL_MODULE__1__;
-
-/***/ }),
-/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var FDLayoutConstants = __webpack_require__(1).FDLayoutConstants;
+var FDLayoutConstants = __webpack_require__(0).FDLayoutConstants;
 
 function CoSEConstants() {}
 
@@ -142,10 +105,10 @@ CoSEConstants.TILING_PADDING_HORIZONTAL = 10;
 module.exports = CoSEConstants;
 
 /***/ }),
-/* 3 */
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var FDLayoutEdge = __webpack_require__(1).FDLayoutEdge;
+var FDLayoutEdge = __webpack_require__(0).FDLayoutEdge;
 
 function CoSEEdge(source, target, vEdge) {
   FDLayoutEdge.call(this, source, target, vEdge);
@@ -159,10 +122,10 @@ for (var prop in FDLayoutEdge) {
 module.exports = CoSEEdge;
 
 /***/ }),
-/* 4 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var LGraph = __webpack_require__(1).LGraph;
+var LGraph = __webpack_require__(0).LGraph;
 
 function CoSEGraph(parent, graphMgr, vGraph) {
   LGraph.call(this, parent, graphMgr, vGraph);
@@ -176,10 +139,10 @@ for (var prop in LGraph) {
 module.exports = CoSEGraph;
 
 /***/ }),
-/* 5 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var LGraphManager = __webpack_require__(1).LGraphManager;
+var LGraphManager = __webpack_require__(0).LGraphManager;
 
 function CoSEGraphManager(layout) {
   LGraphManager.call(this, layout);
@@ -193,24 +156,123 @@ for (var prop in LGraphManager) {
 module.exports = CoSEGraphManager;
 
 /***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var FDLayoutNode = __webpack_require__(0).FDLayoutNode;
+var IMath = __webpack_require__(0).IMath;
+
+function CoSENode(gm, loc, size, vNode) {
+  FDLayoutNode.call(this, gm, loc, size, vNode);
+}
+
+CoSENode.prototype = Object.create(FDLayoutNode.prototype);
+for (var prop in FDLayoutNode) {
+  CoSENode[prop] = FDLayoutNode[prop];
+}
+
+CoSENode.prototype.move = function () {
+  var layout = this.graphManager.getLayout();
+  this.displacementX = layout.coolingFactor * (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.noOfChildren;
+  this.displacementY = layout.coolingFactor * (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.noOfChildren;
+
+  if (Math.abs(this.displacementX) > layout.coolingFactor * layout.maxNodeDisplacement) {
+    this.displacementX = layout.coolingFactor * layout.maxNodeDisplacement * IMath.sign(this.displacementX);
+  }
+
+  if (Math.abs(this.displacementY) > layout.coolingFactor * layout.maxNodeDisplacement) {
+    this.displacementY = layout.coolingFactor * layout.maxNodeDisplacement * IMath.sign(this.displacementY);
+  }
+
+  // a simple node, just move it
+  if (this.child == null) {
+    this.moveBy(this.displacementX, this.displacementY);
+  }
+  // an empty compound node, again just move it
+  else if (this.child.getNodes().length == 0) {
+      this.moveBy(this.displacementX, this.displacementY);
+    }
+    // non-empty compound node, propogate movement to children as well
+    else {
+        this.propogateDisplacementToChildren(this.displacementX, this.displacementY);
+      }
+
+  layout.totalDisplacement += Math.abs(this.displacementX) + Math.abs(this.displacementY);
+
+  this.springForceX = 0;
+  this.springForceY = 0;
+  this.repulsionForceX = 0;
+  this.repulsionForceY = 0;
+  this.gravitationForceX = 0;
+  this.gravitationForceY = 0;
+  this.displacementX = 0;
+  this.displacementY = 0;
+};
+
+CoSENode.prototype.propogateDisplacementToChildren = function (dX, dY) {
+  var nodes = this.getChild().getNodes();
+  var node;
+  for (var i = 0; i < nodes.length; i++) {
+    node = nodes[i];
+    if (node.getChild() == null) {
+      node.moveBy(dX, dY);
+      node.displacementX += dX;
+      node.displacementY += dY;
+    } else {
+      node.propogateDisplacementToChildren(dX, dY);
+    }
+  }
+};
+
+CoSENode.prototype.setPred1 = function (pred1) {
+  this.pred1 = pred1;
+};
+
+CoSENode.prototype.getPred1 = function () {
+  return pred1;
+};
+
+CoSENode.prototype.getPred2 = function () {
+  return pred2;
+};
+
+CoSENode.prototype.setNext = function (next) {
+  this.next = next;
+};
+
+CoSENode.prototype.getNext = function () {
+  return next;
+};
+
+CoSENode.prototype.setProcessed = function (processed) {
+  this.processed = processed;
+};
+
+CoSENode.prototype.isProcessed = function () {
+  return processed;
+};
+
+module.exports = CoSENode;
+
+/***/ }),
 /* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var FDLayout = __webpack_require__(1).FDLayout;
-var CoSEGraphManager = __webpack_require__(5);
-var CoSEGraph = __webpack_require__(4);
-var CoSENode = __webpack_require__(7);
-var CoSEEdge = __webpack_require__(3);
-var CoSEConstants = __webpack_require__(2);
-var FDLayoutConstants = __webpack_require__(1).FDLayoutConstants;
-var LayoutConstants = __webpack_require__(1).LayoutConstants;
-var Point = __webpack_require__(1).Point;
-var PointD = __webpack_require__(1).PointD;
-var Layout = __webpack_require__(1).Layout;
-var Integer = __webpack_require__(1).Integer;
-var IGeometry = __webpack_require__(1).IGeometry;
-var LGraph = __webpack_require__(1).LGraph;
-var Transform = __webpack_require__(1).Transform;
+var FDLayout = __webpack_require__(0).FDLayout;
+var CoSEGraphManager = __webpack_require__(4);
+var CoSEGraph = __webpack_require__(3);
+var CoSENode = __webpack_require__(5);
+var CoSEEdge = __webpack_require__(2);
+var CoSEConstants = __webpack_require__(1);
+var FDLayoutConstants = __webpack_require__(0).FDLayoutConstants;
+var LayoutConstants = __webpack_require__(0).LayoutConstants;
+var Point = __webpack_require__(0).Point;
+var PointD = __webpack_require__(0).PointD;
+var Layout = __webpack_require__(0).Layout;
+var Integer = __webpack_require__(0).Integer;
+var IGeometry = __webpack_require__(0).IGeometry;
+var LGraph = __webpack_require__(0).LGraph;
+var Transform = __webpack_require__(0).Transform;
 
 function CoSELayout() {
   FDLayout.call(this);
@@ -447,12 +509,12 @@ CoSELayout.prototype.calculateNodesToApplyGravitationTo = function () {
 CoSELayout.prototype.createBendpoints = function () {
   var edges = [];
   edges = edges.concat(this.graphManager.getAllEdges());
-  var visited = new HashSet();
+  var visited = new Set();
   var i;
   for (i = 0; i < edges.length; i++) {
     var edge = edges[i];
 
-    if (!visited.contains(edge)) {
+    if (!visited.has(edge)) {
       var source = edge.getSource();
       var target = edge.getTarget();
 
@@ -467,7 +529,7 @@ CoSELayout.prototype.createBendpoints = function () {
         edgeList = edgeList.concat(source.getEdgeListToNode(target));
         edgeList = edgeList.concat(target.getEdgeListToNode(source));
 
-        if (!visited.contains(edgeList[0])) {
+        if (!visited.has(edgeList[0])) {
           if (edgeList.length > 1) {
             var k;
             for (k = 0; k < edgeList.length; k++) {
@@ -476,12 +538,14 @@ CoSELayout.prototype.createBendpoints = function () {
               this.createDummyNodesForBendpoints(multiEdge);
             }
           }
-          visited.addAll(list);
+          edgeList.forEach(function (edge) {
+            visited.add(edge);
+          });
         }
       }
     }
 
-    if (visited.size() == edges.length) {
+    if (visited.size == edges.length) {
       break;
     }
   }
@@ -1311,100 +1375,20 @@ module.exports = CoSELayout;
 /* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var FDLayoutNode = __webpack_require__(1).FDLayoutNode;
-var IMath = __webpack_require__(1).IMath;
+"use strict";
 
-function CoSENode(gm, loc, size, vNode) {
-  FDLayoutNode.call(this, gm, loc, size, vNode);
-}
 
-CoSENode.prototype = Object.create(FDLayoutNode.prototype);
-for (var prop in FDLayoutNode) {
-  CoSENode[prop] = FDLayoutNode[prop];
-}
+let coseBase = {};
 
-CoSENode.prototype.move = function () {
-  var layout = this.graphManager.getLayout();
-  this.displacementX = layout.coolingFactor * (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.noOfChildren;
-  this.displacementY = layout.coolingFactor * (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.noOfChildren;
+coseBase.layoutBase = __webpack_require__(0);
+coseBase.CoSEConstants = __webpack_require__(1);
+coseBase.CoSEEdge = __webpack_require__(2);
+coseBase.CoSEGraph = __webpack_require__(3);
+coseBase.CoSEGraphManager = __webpack_require__(4);
+coseBase.CoSELayout = __webpack_require__(6);
+coseBase.CoSENode = __webpack_require__(5);
 
-  if (Math.abs(this.displacementX) > layout.coolingFactor * layout.maxNodeDisplacement) {
-    this.displacementX = layout.coolingFactor * layout.maxNodeDisplacement * IMath.sign(this.displacementX);
-  }
-
-  if (Math.abs(this.displacementY) > layout.coolingFactor * layout.maxNodeDisplacement) {
-    this.displacementY = layout.coolingFactor * layout.maxNodeDisplacement * IMath.sign(this.displacementY);
-  }
-
-  // a simple node, just move it
-  if (this.child == null) {
-    this.moveBy(this.displacementX, this.displacementY);
-  }
-  // an empty compound node, again just move it
-  else if (this.child.getNodes().length == 0) {
-      this.moveBy(this.displacementX, this.displacementY);
-    }
-    // non-empty compound node, propogate movement to children as well
-    else {
-        this.propogateDisplacementToChildren(this.displacementX, this.displacementY);
-      }
-
-  layout.totalDisplacement += Math.abs(this.displacementX) + Math.abs(this.displacementY);
-
-  this.springForceX = 0;
-  this.springForceY = 0;
-  this.repulsionForceX = 0;
-  this.repulsionForceY = 0;
-  this.gravitationForceX = 0;
-  this.gravitationForceY = 0;
-  this.displacementX = 0;
-  this.displacementY = 0;
-};
-
-CoSENode.prototype.propogateDisplacementToChildren = function (dX, dY) {
-  var nodes = this.getChild().getNodes();
-  var node;
-  for (var i = 0; i < nodes.length; i++) {
-    node = nodes[i];
-    if (node.getChild() == null) {
-      node.moveBy(dX, dY);
-      node.displacementX += dX;
-      node.displacementY += dY;
-    } else {
-      node.propogateDisplacementToChildren(dX, dY);
-    }
-  }
-};
-
-CoSENode.prototype.setPred1 = function (pred1) {
-  this.pred1 = pred1;
-};
-
-CoSENode.prototype.getPred1 = function () {
-  return pred1;
-};
-
-CoSENode.prototype.getPred2 = function () {
-  return pred2;
-};
-
-CoSENode.prototype.setNext = function (next) {
-  this.next = next;
-};
-
-CoSENode.prototype.getNext = function () {
-  return next;
-};
-
-CoSENode.prototype.setProcessed = function (processed) {
-  this.processed = processed;
-};
-
-CoSENode.prototype.isProcessed = function () {
-  return processed;
-};
-
-module.exports = CoSENode;
+module.exports = coseBase;
 
 /***/ })
 /******/ ]);

@@ -272,13 +272,13 @@ CoSELayout.prototype.calculateNodesToApplyGravitationTo = function () {
 CoSELayout.prototype.createBendpoints = function () {
   var edges = [];
   edges = edges.concat(this.graphManager.getAllEdges());
-  var visited = new HashSet();
+  var visited = new Set();
   var i;
   for (i = 0; i < edges.length; i++)
   {
     var edge = edges[i];
 
-    if (!visited.contains(edge))
+    if (!visited.has(edge))
     {
       var source = edge.getSource();
       var target = edge.getTarget();
@@ -297,7 +297,7 @@ CoSELayout.prototype.createBendpoints = function () {
         edgeList = edgeList.concat(source.getEdgeListToNode(target));
         edgeList = edgeList.concat(target.getEdgeListToNode(source));
 
-        if (!visited.contains(edgeList[0]))
+        if (!visited.has(edgeList[0]))
         {
           if (edgeList.length > 1)
           {
@@ -309,12 +309,14 @@ CoSELayout.prototype.createBendpoints = function () {
               this.createDummyNodesForBendpoints(multiEdge);
             }
           }
-          visited.addAll(list);
+          edgeList.forEach(function(edge){
+            visited.add(edge);
+          });
         }
       }
     }
 
-    if (visited.size() == edges.length)
+    if (visited.size == edges.length)
     {
       break;
     }
