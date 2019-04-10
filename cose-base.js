@@ -345,6 +345,12 @@ CoSELayout.prototype.initParameters = function () {
     this.afterGrowthIterations = 0;
     this.isTreeGrowing = false;
     this.isGrowthFinished = false;
+
+    // variables for cooling
+    this.coolingCycle = 0;
+    this.maxCoolingCycle = this.maxIterations / FDLayoutConstants.CONVERGENCE_CHECK_PERIOD;
+    this.finalTemperature = FDLayoutConstants.CONVERGENCE_CHECK_PERIOD / this.maxIterations;
+    this.coolingAdjuster = 1;
   }
 };
 
@@ -417,7 +423,18 @@ CoSELayout.prototype.tick = function () {
       }
     }
 
-    this.coolingFactor = this.coolingFactor * 0.8;
+    this.coolingCycle++;
+
+    if (this.layoutQuality == 0) {
+      // quality - "draft"
+      this.coolingAdjuster = this.coolingCycle;
+    } else if (this.layoutQuality == 1) {
+      // quality - "default"
+      this.coolingAdjuster = this.coolingCycle / 3;
+    }
+
+    // cooling schedule is based on http://www.btluke.com/simanf1.html -> cooling schedule 3
+    this.coolingFactor = Math.max(this.initialCoolingFactor - Math.pow(this.coolingCycle, Math.log(100 * (this.initialCoolingFactor - this.finalTemperature)) / Math.log(this.maxCoolingCycle)) / 100 * this.coolingAdjuster, this.finalTemperature);
     this.animationPeriod = Math.ceil(this.initialAnimationPeriod * Math.sqrt(this.coolingFactor));
   }
   // Operations while tree is growing again 
