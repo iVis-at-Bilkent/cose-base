@@ -1,7 +1,7 @@
 {
   "name": "cose-base",
   "version": "1.0.0",
-  "description": "",
+  "description": "Core module for compound spring embedder based layout styles",
   "main": "cose-base.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -34,6 +34,6 @@
     "webpack-dev-server": "^2.4.5"
   },
   "dependencies": {
-    "layout-base": "https://github.com/iVis-at-Bilkent/layout-base#unstable"
+    "layout-base": "^1.0.0"
   }
 }
