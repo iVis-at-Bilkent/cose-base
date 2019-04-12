@@ -4,6 +4,10 @@
 
 This is a core module for compound spring embedder based layout styles such as CoSE-Bilkent, fCoSE, and CiSE.
 
+## Dependencies
+
+ * layout-base ^1.0.0
+
 ## Usage instructions
 
 Add `cose-base` as a dependecy to your layout extension.
