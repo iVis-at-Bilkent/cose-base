@@ -1008,8 +1008,8 @@ CoSELayout.prototype.tileCompoundMembers = function (childGraphMap, idToNode) {
 
     self.tiledMemberPack[id] = self.tileNodes(childGraphMap[id], compoundNode.paddingLeft + compoundNode.paddingRight);
 
-    compoundNode.rect.width = self.tiledMemberPack[id].width + 20;
-    compoundNode.rect.height = self.tiledMemberPack[id].height + 20;
+    compoundNode.rect.width = self.tiledMemberPack[id].width;
+    compoundNode.rect.height = self.tiledMemberPack[id].height;
   });
 };
 
@@ -1020,8 +1020,8 @@ CoSELayout.prototype.tileNodes = function (nodes, minWidth) {
     rows: [],
     rowWidth: [],
     rowHeight: [],
-    width: 20,
-    height: 20,
+    width: 0,
+    height: minWidth, // assume minHeight equals to minWidth
     verticalPadding: verticalPadding,
     horizontalPadding: horizontalPadding
   };
