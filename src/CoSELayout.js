@@ -130,6 +130,17 @@ CoSELayout.prototype.classicLayout = function () {
       this.positionNodesRandomly();
     }
   }
+  else {
+    if(CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL){
+      // Reduce the trees in incremental mode if only this constant is set to true 
+      this.reduceTrees();
+      // Update nodes that gravity will be applied
+      this.graphManager.resetAllNodesToApplyGravitation();
+      var allNodes = new Set(this.getAllNodes());
+      var intersection = this.nodesWithGravity.filter(x => allNodes.has(x));
+      this.graphManager.setAllNodesToApplyGravitation(intersection);        
+    }
+  }
 
   this.initSpringEmbedder();
   this.runSpringEmbedder();
