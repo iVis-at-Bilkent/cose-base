@@ -265,6 +265,26 @@ CoSELayout.prototype.runSpringEmbedder = function () {
   }
 };
 
+// overrides moveNodes method in FDLayout
+CoSELayout.prototype.moveNodes = function () {
+  var lNodes = this.getAllNodes();
+  var node;
+
+  // calculate displacement for each node 
+  for (var i = 0; i < lNodes.length; i++)
+  {
+    node = lNodes[i];
+    node.calculateDisplacement();
+  }
+  
+  // move each node
+  for (var i = 0; i < lNodes.length; i++)
+  {
+    node = lNodes[i];
+    node.move();
+  }  
+};
+
 CoSELayout.prototype.calculateNodesToApplyGravitationTo = function () {
   var nodeList = [];
   var graph;

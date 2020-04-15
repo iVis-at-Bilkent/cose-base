@@ -5,20 +5,18 @@ function CoSENode(gm, loc, size, vNode) {
   FDLayoutNode.call(this, gm, loc, size, vNode);
 }
 
-
 CoSENode.prototype = Object.create(FDLayoutNode.prototype);
 for (var prop in FDLayoutNode) {
   CoSENode[prop] = FDLayoutNode[prop];
 }
 
-CoSENode.prototype.move = function ()
+CoSENode.prototype.calculateDisplacement = function ()
 {
   var layout = this.graphManager.getLayout();
-  this.displacementX = layout.coolingFactor *
+  this.displacementX += layout.coolingFactor *
           (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.noOfChildren;
-  this.displacementY = layout.coolingFactor *
+  this.displacementY += layout.coolingFactor *
           (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.noOfChildren;
-
 
   if (Math.abs(this.displacementX) > layout.coolingFactor * layout.maxNodeDisplacement)
   {
@@ -31,35 +29,14 @@ CoSENode.prototype.move = function ()
     this.displacementY = layout.coolingFactor * layout.maxNodeDisplacement *
             IMath.sign(this.displacementY);
   }
-
-  // a simple node, just move it
-  if (this.child == null)
-  {
-    this.moveBy(this.displacementX, this.displacementY);
-  }
-  // an empty compound node, again just move it
-  else if (this.child.getNodes().length == 0)
-  {
-    this.moveBy(this.displacementX, this.displacementY);
-  }
+  
   // non-empty compound node, propogate movement to children as well
-  else
+  if(this.child && this.child.getNodes().length > 0)
   {
     this.propogateDisplacementToChildren(this.displacementX,
             this.displacementY);
   }
-
-  layout.totalDisplacement +=
-          Math.abs(this.displacementX) + Math.abs(this.displacementY);
-
-  this.springForceX = 0;
-  this.springForceY = 0;
-  this.repulsionForceX = 0;
-  this.repulsionForceY = 0;
-  this.gravitationForceX = 0;
-  this.gravitationForceY = 0;
-  this.displacementX = 0;
-  this.displacementY = 0;
+ 
 };
 
 CoSENode.prototype.propogateDisplacementToChildren = function (dX, dY)
@@ -71,15 +48,37 @@ CoSENode.prototype.propogateDisplacementToChildren = function (dX, dY)
     node = nodes[i];
     if (node.getChild() == null)
     {
-      node.moveBy(dX, dY);
       node.displacementX += dX;
-      node.displacementY += dY;
+      node.displacementY += dY;      
     }
     else
     {
       node.propogateDisplacementToChildren(dX, dY);
     }
   }
+};
+
+CoSENode.prototype.move = function ()
+{
+  var layout = this.graphManager.getLayout();
+  
+  // a simple node or an empty compound node, move it
+  if (this.child == null || this.child.getNodes().length == 0)
+  {
+    this.moveBy(this.displacementX, this.displacementY);
+  }
+  
+  layout.totalDisplacement +=
+          Math.abs(this.displacementX) + Math.abs(this.displacementY);
+
+  this.springForceX = 0;
+  this.springForceY = 0;
+  this.repulsionForceX = 0;
+  this.repulsionForceY = 0;
+  this.gravitationForceX = 0;
+  this.gravitationForceY = 0;
+  this.displacementX = 0;
+  this.displacementY = 0;  
 };
 
 CoSENode.prototype.setPred1 = function (pred1)
