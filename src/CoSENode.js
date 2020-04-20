@@ -66,10 +66,9 @@ CoSENode.prototype.move = function ()
   if (this.child == null || this.child.getNodes().length == 0)
   {
     this.moveBy(this.displacementX, this.displacementY);
+
+    layout.totalDisplacement += Math.abs(this.displacementX) + Math.abs(this.displacementY);
   }
-  
-  layout.totalDisplacement +=
-          Math.abs(this.displacementX) + Math.abs(this.displacementY);
 
   this.springForceX = 0;
   this.springForceY = 0;

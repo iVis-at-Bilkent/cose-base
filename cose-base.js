@@ -225,9 +225,9 @@ CoSENode.prototype.move = function () {
   // a simple node or an empty compound node, move it
   if (this.child == null || this.child.getNodes().length == 0) {
     this.moveBy(this.displacementX, this.displacementY);
-  }
 
-  layout.totalDisplacement += Math.abs(this.displacementX) + Math.abs(this.displacementY);
+    layout.totalDisplacement += Math.abs(this.displacementX) + Math.abs(this.displacementY);
+  }
 
   this.springForceX = 0;
   this.springForceY = 0;
@@ -296,6 +296,7 @@ function CoSELayout() {
   FDLayout.call(this);
 
   this.toBeTiled = {}; // Memorize if a node is to be tiled or is tiled
+  this.constraints = {}; // keep layout constraints
 }
 
 CoSELayout.prototype = Object.create(FDLayout.prototype);
@@ -395,6 +396,10 @@ CoSELayout.prototype.classicLayout = function () {
 
         this.positionNodesRandomly();
       }
+  }
+
+  if (Object.keys(this.constraints).length > 0) {
+    this.initConstraintVariables();
   }
 
   this.initSpringEmbedder();
@@ -536,10 +541,84 @@ CoSELayout.prototype.moveNodes = function () {
     node.calculateDisplacement();
   }
 
+  if (Object.keys(this.constraints).length > 0) {
+    this.updateDisplacements();
+  }
+
   // move each node
   for (var i = 0; i < lNodes.length; i++) {
     node = lNodes[i];
     node.move();
+  }
+};
+
+// initialize constraint related variables
+CoSELayout.prototype.initConstraintVariables = function () {
+  self = this;
+  this.idToNodeMap = new Map();
+  this.fixedNodeSet = new Set();
+
+  var allNodes = this.graphManager.getAllNodes();
+
+  // Fill idToNodeMap
+  for (var i = 0; i < allNodes.length; i++) {
+    var node = allNodes[i];
+    this.idToNodeMap.set(node.id, node);
+  }
+
+  if (this.constraints.fixedNodeConstraint) {
+    this.constraints["fixedNodeConstraint"].forEach(function (nodeData) {
+      self.fixedNodeSet.add(nodeData["nodeId"]);
+    });
+  }
+};
+
+// updates node displacements based on constraints
+CoSELayout.prototype.updateDisplacements = function () {
+  self = this;
+  if (this.constraints.fixedNodeConstraint) {
+    this.constraints["fixedNodeConstraint"].forEach(function (nodeData) {
+      var fixedNode = self.idToNodeMap.get(nodeData["nodeId"]);
+      fixedNode.displacementX = 0;
+      fixedNode.displacementY = 0;
+    });
+  }
+
+  if (this.constraints.alignmentConstraint) {
+    if (this.constraints.alignmentConstraint["vertical"]) {
+      var allVerticalAlignments = this.constraints.alignmentConstraint['vertical'];
+      for (var i = 0; i < allVerticalAlignments.length; i++) {
+        var totalDisplacementX = 0;
+        for (var j = 0; j < allVerticalAlignments[i].length; j++) {
+          if (this.fixedNodeSet.has(allVerticalAlignments[i][j])) {
+            totalDisplacementX = 0;
+            break;
+          }
+          totalDisplacementX += this.idToNodeMap.get(allVerticalAlignments[i][j]).displacementX;
+        }
+        var averageDisplacementX = totalDisplacementX / allVerticalAlignments[i].length;
+        for (var j = 0; j < allVerticalAlignments[i].length; j++) {
+          this.idToNodeMap.get(allVerticalAlignments[i][j]).displacementX = averageDisplacementX;
+        }
+      }
+    }
+    if (this.constraints.alignmentConstraint["horizontal"]) {
+      var allHorizontalAlignments = this.constraints.alignmentConstraint['horizontal'];
+      for (var i = 0; i < allHorizontalAlignments.length; i++) {
+        var totalDisplacementY = 0;
+        for (var j = 0; j < allHorizontalAlignments[i].length; j++) {
+          if (this.fixedNodeSet.has(allHorizontalAlignments[i][j])) {
+            totalDisplacementY = 0;
+            break;
+          }
+          totalDisplacementY += this.idToNodeMap.get(allHorizontalAlignments[i][j]).displacementY;
+        }
+        var averageDisplacementY = totalDisplacementY / allHorizontalAlignments[i].length;
+        for (var j = 0; j < allHorizontalAlignments[i].length; j++) {
+          this.idToNodeMap.get(allHorizontalAlignments[i][j]).displacementY = averageDisplacementY;
+        }
+      }
+    }
   }
 };
 
