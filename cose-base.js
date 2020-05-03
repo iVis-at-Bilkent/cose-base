@@ -761,14 +761,18 @@ CoSELayout.prototype.updateDisplacements = function () {
         }
       } else {
         var sum = 0;
+        var count = 0;
         for (var j = 0; j < component.length; j++) {
           if (this.dummyToNodeForVerticalAlignment.has(component[j])) {
-            sum += this.idToNodeMap.get(this.dummyToNodeForVerticalAlignment.get(component[j])[0]).displacementX;
+            var actualNodes = this.dummyToNodeForVerticalAlignment.get(component[j]);
+            sum += actualNodes.length * this.idToNodeMap.get(actualNodes[0]).displacementX;
+            count += actualNodes.length;
           } else {
             sum += this.idToNodeMap.get(component[j]).displacementX;
+            count++;
           }
         }
-        var averageDisplacement = sum / component.length;
+        var averageDisplacement = sum / count;
         for (var j = 0; j < component.length; j++) {
           if (this.dummyToNodeForVerticalAlignment.has(component[j])) {
             this.dummyToNodeForVerticalAlignment.get(component[j]).forEach(function (nodeId) {
@@ -795,14 +799,18 @@ CoSELayout.prototype.updateDisplacements = function () {
         }
       } else {
         var sum = 0;
+        var count = 0;
         for (var j = 0; j < component.length; j++) {
           if (this.dummyToNodeForHorizontalAlignment.has(component[j])) {
-            sum += this.idToNodeMap.get(this.dummyToNodeForHorizontalAlignment.get(component[j])[0]).displacementX;
+            var actualNodes = this.dummyToNodeForHorizontalAlignment.get(component[j]);
+            sum += actualNodes.length * this.idToNodeMap.get(actualNodes[0]).displacementY;
+            count += actualNodes.length;
           } else {
             sum += this.idToNodeMap.get(component[j]).displacementY;
+            count++;
           }
         }
-        var averageDisplacement = sum / component.length;
+        var averageDisplacement = sum / count;
         for (var j = 0; j < component.length; j++) {
           if (this.dummyToNodeForHorizontalAlignment.has(component[j])) {
             this.dummyToNodeForHorizontalAlignment.get(component[j]).forEach(function (nodeId) {
