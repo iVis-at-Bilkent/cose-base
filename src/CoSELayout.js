@@ -4,6 +4,7 @@ var CoSEGraph = require('./CoSEGraph');
 var CoSENode = require('./CoSENode');
 var CoSEEdge = require('./CoSEEdge');
 var CoSEConstants = require('./CoSEConstants');
+var ConstraintHandler = require('./ConstraintHandler');
 var FDLayoutConstants = require('layout-base').FDLayoutConstants;
 var LayoutConstants = require('layout-base').LayoutConstants;
 var Point = require('layout-base').Point;
@@ -134,6 +135,7 @@ CoSELayout.prototype.classicLayout = function () {
   }
 
   if(Object.keys(this.constraints).length > 0){
+    ConstraintHandler.handleConstraints(this);
     this.initConstraintVariables();
   }
 
@@ -294,6 +296,8 @@ CoSELayout.prototype.moveNodes = function () {
     node.move();
   }  
 };
+
+// constraint related methods: initConstraintVariables and updateDisplacements
 
 // initialize constraint related variables
 CoSELayout.prototype.initConstraintVariables = function () {
