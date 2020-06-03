@@ -184,7 +184,9 @@ ConstraintHandler.handleConstraints = function (layout)
               components.push(new Set(value));
             }
             else {
-              components[existAt].add(key);
+              value.forEach(function(ele) {
+                components[existAt].add(ele);
+              });              
             }
           }
         }
