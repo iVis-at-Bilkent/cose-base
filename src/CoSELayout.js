@@ -151,7 +151,9 @@ CoSELayout.prototype.classicLayout = function () {
   }
 
   this.initSpringEmbedder();
-  this.runSpringEmbedder();
+  if (CoSEConstants.APPLY_LAYOUT) {
+    this.runSpringEmbedder();
+  }
 
   return true;
 };

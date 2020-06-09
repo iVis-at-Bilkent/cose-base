@@ -106,6 +106,7 @@ CoSEConstants.TILING_PADDING_VERTICAL = 10;
 CoSEConstants.TILING_PADDING_HORIZONTAL = 10;
 CoSEConstants.TRANSFORM_ON_CONSTRAINT_HANDLING = true;
 CoSEConstants.ENFORCE_CONSTRAINTS = true;
+CoSEConstants.APPLY_LAYOUT = true;
 CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL = false; // make this true when cose is used incrementally as a part of other non-incremental layout
 
 module.exports = CoSEConstants;
@@ -403,9 +404,9 @@ ConstraintHandler.handleConstraints = function (layout) {
       if (value == 0) {
         queue.push(key);
         if (direction == "horizontal") {
-          positionMap.set(key, xCoords[nodeIndexes.get(key)] ? xCoords[nodeIndexes.get(key)] : dummyPositions.get(key));
+          positionMap.set(key, nodeIndexes.has(key) ? xCoords[nodeIndexes.get(key)] : dummyPositions.get(key));
         } else {
-          positionMap.set(key, yCoords[nodeIndexes.get(key)] ? yCoords[nodeIndexes.get(key)] : dummyPositions.get(key));
+          positionMap.set(key, nodeIndexes.has(key) ? yCoords[nodeIndexes.get(key)] : dummyPositions.get(key));
         }
       } else {
         positionMap.set(key, Number.NEGATIVE_INFINITY);
@@ -425,9 +426,9 @@ ConstraintHandler.handleConstraints = function (layout) {
           if (fixedNodes && fixedNodes.has(neighbor.id)) {
             var fixedPosition = void 0;
             if (direction == "horizontal") {
-              fixedPosition = xCoords[nodeIndexes.get(neighbor.id)] ? xCoords[nodeIndexes.get(neighbor.id)] : dummyPositions.get(neighbor.id);
+              fixedPosition = nodeIndexes.has(neighbor.id) ? xCoords[nodeIndexes.get(neighbor.id)] : dummyPositions.get(neighbor.id);
             } else {
-              fixedPosition = yCoords[nodeIndexes.get(neighbor.id)] ? yCoords[nodeIndexes.get(neighbor.id)] : dummyPositions.get(neighbor.id);
+              fixedPosition = nodeIndexes.has(neighbor.id) ? yCoords[nodeIndexes.get(neighbor.id)] : dummyPositions.get(neighbor.id);
             }
             positionMap.set(neighbor.id, fixedPosition); // TODO: may do unnecessary work
             if (fixedPosition < positionMap.get(currentNode) + neighbor.gap) {
@@ -532,9 +533,9 @@ ConstraintHandler.handleConstraints = function (layout) {
 
             var posBefore = void 0;
             if (direction == "horizontal") {
-              posBefore = xCoords[nodeIndexes.get(nodeId)] ? xCoords[nodeIndexes.get(nodeId)] : dummyPositions.get(nodeId);
+              posBefore = nodeIndexes.has(nodeId) ? xCoords[nodeIndexes.get(nodeId)] : dummyPositions.get(nodeId);
             } else {
-              posBefore = yCoords[nodeIndexes.get(nodeId)] ? yCoords[nodeIndexes.get(nodeId)] : dummyPositions.get(nodeId);
+              posBefore = nodeIndexes.has(nodeId) ? yCoords[nodeIndexes.get(nodeId)] : dummyPositions.get(nodeId);
             }
             var posAfter = positionMap.get(nodeId);
             if (posBefore < minBefore) {
@@ -1343,7 +1344,9 @@ CoSELayout.prototype.classicLayout = function () {
   }
 
   this.initSpringEmbedder();
-  this.runSpringEmbedder();
+  if (CoSEConstants.APPLY_LAYOUT) {
+    this.runSpringEmbedder();
+  }
 
   return true;
 };
