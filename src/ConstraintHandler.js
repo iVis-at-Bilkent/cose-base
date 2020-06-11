@@ -71,7 +71,7 @@ ConstraintHandler.handleConstraints = function (layout)
   // this function also takes the fixed nodes and alignment constraints into account
   // graph: dag to be evaluated, direction: "horizontal" or "vertical", 
   // fixedNodes: set of fixed nodes to consider during evaluation, dummyPositions: appropriate coordinates of the dummy nodes  
-  let findAppropriatePositionForRelativePlacement = function(graph, direction, fixedNodes, dummyPositions) {
+  let findAppropriatePositionForRelativePlacement = function(graph, direction, fixedNodes, dummyPositions, componentSources) {
     
     // find union of two sets
     function setUnion(setA, setB) {
@@ -100,11 +100,13 @@ ConstraintHandler.handleConstraints = function (layout)
     inDegrees.forEach(function(value, key) {
       if (value == 0) {
         queue.push(key);
-        if (direction == "horizontal") {
-          positionMap.set(key, nodeIndexes.has(key) ? xCoords[nodeIndexes.get(key)] : dummyPositions.get(key));
-        }
-        else {
-          positionMap.set(key, nodeIndexes.has(key) ? yCoords[nodeIndexes.get(key)] : dummyPositions.get(key));
+        if (!fixedNodes) {
+          if (direction == "horizontal") {
+            positionMap.set(key, nodeIndexes.has(key) ? xCoords[nodeIndexes.get(key)] : dummyPositions.get(key));
+          }
+          else {
+            positionMap.set(key, nodeIndexes.has(key) ? yCoords[nodeIndexes.get(key)] : dummyPositions.get(key));
+          }
         }
       }
       else {
@@ -114,6 +116,52 @@ ConstraintHandler.handleConstraints = function (layout)
         pastMap.set(key, new Set([key]));
       }
     });
+    
+    // align sources of each component in enforcement phase
+    if (fixedNodes) {
+      componentSources.forEach(function(component) {
+        let fixedIds = [];
+        component.forEach(function(nodeId) {
+          if (fixedNodes.has(nodeId)) {
+            fixedIds.push(nodeId);
+          }          
+        });
+        if (fixedIds.length > 0) {
+          let position = 0;
+          fixedIds.forEach(function(fixedId) {
+            if (direction == "horizontal") {
+              positionMap.set(fixedId, nodeIndexes.has(fixedId) ? xCoords[nodeIndexes.get(fixedId)] : dummyPositions.get(fixedId));
+              position += positionMap.get(fixedId);
+            }
+            else {
+              positionMap.set(fixedId, nodeIndexes.has(fixedId) ? yCoords[nodeIndexes.get(fixedId)] : dummyPositions.get(fixedId));
+              position += positionMap.get(fixedId);
+            }            
+          });
+          position = position / fixedIds.length;
+          component.forEach(function(nodeId) {
+            if (!fixedNodes.has(nodeId)) {
+              positionMap.set(nodeId, position);
+            }          
+          });          
+        }
+        else {
+          let position = 0;
+          component.forEach(function(nodeId) {
+            if (direction == "horizontal") {
+              position += nodeIndexes.has(nodeId) ? xCoords[nodeIndexes.get(nodeId)] : dummyPositions.get(nodeId);
+            }
+            else {
+              position += nodeIndexes.has(nodeId) ? yCoords[nodeIndexes.get(nodeId)] : dummyPositions.get(nodeId);
+            }
+          });
+          position = position / component.length;
+          component.forEach(function(nodeId) {
+            positionMap.set(nodeId, position);     
+          });
+        }
+      });
+    }
 
     // calculate positions of the nodes
     while (queue.length != 0) {
@@ -265,6 +313,74 @@ ConstraintHandler.handleConstraints = function (layout)
     }
   };
   
+  // find weakly connected components in undirected graph
+  let findComponents = function(graph) {
+    // find weakly connected components in dag
+    let components = [];
+    let queue = new LinkedList();
+    let visited = new Set();
+    let count = 0;
+    
+    graph.forEach(function(value, key) {
+      if (!visited.has(key)) {
+        components[count] = [];
+        let currentNode = key;
+        queue.push(currentNode);
+        visited.add(currentNode);
+        components[count].push(currentNode);
+
+        while (queue.length != 0) {
+          currentNode = queue.shift();
+          let neighbors = graph.get(currentNode);
+          neighbors.forEach(function(neighbor) {
+            if (!visited.has(neighbor.id)) {
+              queue.push(neighbor.id);
+              visited.add(neighbor.id);
+              components[count].push(neighbor.id);
+            }
+          });
+        }
+        count++;
+      }
+    });
+    return components;
+  };
+  
+  // return undirected version of given dag
+  let dagToUndirected = function(dag) {
+    let undirected = new Map();
+    
+    dag.forEach(function(value, key) {
+      undirected.set(key, []);
+    });
+    
+    dag.forEach(function(value, key) {
+      value.forEach(function(adjacent) {
+        undirected.get(key).push(adjacent);
+        undirected.get(adjacent.id).push({id: key, gap: adjacent.gap, direction: adjacent.direction});
+      });
+    });    
+    
+    return undirected;
+  };
+  
+  // return reversed (directions inverted) version of given dag
+  let dagToReversed = function(dag) {
+    let reversed = new Map();
+    
+    dag.forEach(function(value, key) {
+      reversed.set(key, []);
+    });
+    
+    dag.forEach(function(value, key) {
+      value.forEach(function(adjacent) {
+        reversed.get(adjacent.id).push({id: key, gap: adjacent.gap, direction: adjacent.direction});
+      });
+    });    
+    
+    return reversed;
+  };  
+  
   /****  apply transformation to the initial draft layout to better align with constrained nodes ****/
   // solve the Orthogonal Procrustean Problem to rotate and/or reflect initial draft layout
   // here we follow the solution in Chapter 20.2 of Borg, I. & Groenen, P. (2005) Modern Multidimensional Scaling: Theory and Applications 
@@ -294,66 +410,29 @@ ConstraintHandler.handleConstraints = function (layout)
       if (constraint.left) {
         if (dag.has(constraint.left)) {
           dag.get(constraint.left).push({id: constraint.right, gap: constraint.gap, direction: "horizontal"});
-          dagUndirected.get(constraint.left).push({id: constraint.right, gap: constraint.gap, direction: "horizontal"});
         }
         else {
-          dag.set(constraint.left, [{id: constraint.right, gap: constraint.gap, direction: "horizontal"}]);
-          dagUndirected.set(constraint.left, [{id: constraint.right, gap: constraint.gap, direction: "horizontal"}]); 
+          dag.set(constraint.left, [{id: constraint.right, gap: constraint.gap, direction: "horizontal"}]); 
         }
-        if (dag.has(constraint.right)) {
-          dagUndirected.get(constraint.right).push({id: constraint.left, gap: constraint.gap, direction: "horizontal"});          
-        }
-        else {
-          dag.set(constraint.right, []);
-          dagUndirected.set(constraint.right, [{id: constraint.left, gap: constraint.gap, direction: "horizontal"}]);           
+        if (!dag.has(constraint.right)) {
+          dag.set(constraint.right, []);         
         }
       }
       else {
         if (dag.has(constraint.top)) {
           dag.get(constraint.top).push({id: constraint.bottom, gap: constraint.gap, direction: "vertical"});
-          dagUndirected.get(constraint.top).push({id: constraint.bottom, gap: constraint.gap, direction: "vertical"});
         }
         else {
-          dag.set(constraint.top, [{id: constraint.bottom, gap: constraint.gap, direction: "vertical"}]);
-          dagUndirected.set(constraint.top, [{id: constraint.bottom, gap: constraint.gap, direction: "vertical"}]);          
+          dag.set(constraint.top, [{id: constraint.bottom, gap: constraint.gap, direction: "vertical"}]);        
         }        
-        if (dag.has(constraint.bottom)) {
-          dagUndirected.get(constraint.bottom).push({id: constraint.top, gap: constraint.gap, direction: "vertical"});          
-        }
-        else {
-          dag.set(constraint.bottom, []);
-          dagUndirected.set(constraint.bottom, [{id: constraint.top, gap: constraint.gap, direction: "vertical"}]);           
-        }        
+        if (!dag.has(constraint.bottom)) {
+          dag.set(constraint.bottom, []);         
+        }      
       }      
     });
     
-    // find weakly connected components in dag
-    let queue = new LinkedList();
-    let visited = new Set();
-    let count = 0;
-    
-    dagUndirected.forEach(function(value, key) {
-      if (!visited.has(key)) {
-        components[count] = [];
-        let currentNode = key;
-        queue.push(currentNode);
-        visited.add(currentNode);
-        components[count].push(currentNode);
-
-        while (queue.length != 0) {
-          currentNode = queue.shift();
-          let neighbors = dagUndirected.get(currentNode);
-          neighbors.forEach(function(neighbor) {
-            if (!visited.has(neighbor.id)) {
-              queue.push(neighbor.id);
-              visited.add(neighbor.id);
-              components[count].push(neighbor.id);
-            }
-          });
-        }
-        count++;
-      }
-    });   
+    dagUndirected = dagToUndirected(dag);
+    components = findComponents(dagUndirected);   
   }
   
   if (CoSEConstants.TRANSFORM_ON_CONSTRAINT_HANDLING) {
@@ -699,11 +778,39 @@ ConstraintHandler.handleConstraints = function (layout)
             }              
           }
         });
-      }      
+      }
+      
+      // find source nodes of each component in horizontal and vertical dags
+      let undirectedOnHorizontal = dagToUndirected(dagOnHorizontal);
+      let undirectedOnVertical = dagToUndirected(dagOnVertical);
+      let componentsOnHorizontal = findComponents(undirectedOnHorizontal);
+      let componentsOnVertical = findComponents(undirectedOnVertical);
+      let reversedDagOnHorizontal = dagToReversed(dagOnHorizontal);
+      let reversedDagOnVertical = dagToReversed(dagOnVertical);
+      let componentSourcesOnHorizontal = [];
+      let componentSourcesOnVertical = [];
+      
+      componentsOnHorizontal.forEach(function(component, index) {
+        componentSourcesOnHorizontal[index] = [];
+        component.forEach(function(nodeId) {
+          if (reversedDagOnHorizontal.get(nodeId).length == 0) {
+            componentSourcesOnHorizontal[index].push(nodeId);
+          }
+        });
+      });
+      
+      componentsOnVertical.forEach(function(component, index) {
+        componentSourcesOnVertical[index] = [];
+        component.forEach(function(nodeId) {
+          if (reversedDagOnVertical.get(nodeId).length == 0) {
+            componentSourcesOnVertical[index].push(nodeId);
+          }
+        });
+      });      
       
       // calculate appropriate positioning for subgraphs
-      let positionMapHorizontal = findAppropriatePositionForRelativePlacement(dagOnHorizontal, "horizontal", fixedNodesOnHorizontal, dummyPositionsForVerticalAlignment);
-      let positionMapVertical = findAppropriatePositionForRelativePlacement(dagOnVertical, "vertical", fixedNodesOnVertical, dummyPositionsForHorizontalAlignment);      
+      let positionMapHorizontal = findAppropriatePositionForRelativePlacement(dagOnHorizontal, "horizontal", fixedNodesOnHorizontal, dummyPositionsForVerticalAlignment, componentSourcesOnHorizontal);
+      let positionMapVertical = findAppropriatePositionForRelativePlacement(dagOnVertical, "vertical", fixedNodesOnVertical, dummyPositionsForHorizontalAlignment, componentSourcesOnVertical);      
 
       // update positions of the nodes based on relative placement constraints
       for (let key of positionMapHorizontal.keys()) {
