@@ -17,6 +17,7 @@ CoSEConstants.TILING_PADDING_HORIZONTAL = 10;
 CoSEConstants.TRANSFORM_ON_CONSTRAINT_HANDLING = true;
 CoSEConstants.ENFORCE_CONSTRAINTS = true;
 CoSEConstants.APPLY_LAYOUT = true;
+CoSEConstants.RELAX_MOVEMENT_ON_CONSTRAINTS = true;
 CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL = false;  // make this true when cose is used incrementally as a part of other non-incremental layout
 
 module.exports = CoSEConstants;
