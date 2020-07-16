@@ -13,10 +13,19 @@ for (var prop in FDLayoutNode) {
 CoSENode.prototype.calculateDisplacement = function ()
 {
   var layout = this.graphManager.getLayout();
-  this.displacementX += layout.coolingFactor *
-          (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.noOfChildren;
-  this.displacementY += layout.coolingFactor *
-          (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.noOfChildren;
+  // this check is for compound nodes that contain fixed nodes
+  if (this.getChild() != null && this.fixedNodeWeight) {
+    this.displacementX += layout.coolingFactor *
+            (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.fixedNodeWeight;
+    this.displacementY += layout.coolingFactor *
+            (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.fixedNodeWeight;
+  }
+  else {
+    this.displacementX += layout.coolingFactor *
+            (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.noOfChildren;
+    this.displacementY += layout.coolingFactor *
+            (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.noOfChildren;
+  }
 
   if (Math.abs(this.displacementX) > layout.coolingFactor * layout.maxNodeDisplacement)
   {

@@ -193,8 +193,14 @@ for (var prop in FDLayoutNode) {
 
 CoSENode.prototype.calculateDisplacement = function () {
   var layout = this.graphManager.getLayout();
-  this.displacementX += layout.coolingFactor * (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.noOfChildren;
-  this.displacementY += layout.coolingFactor * (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.noOfChildren;
+  // this check is for compound nodes that contain fixed nodes
+  if (this.getChild() != null && this.fixedNodeWeight) {
+    this.displacementX += layout.coolingFactor * (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.fixedNodeWeight;
+    this.displacementY += layout.coolingFactor * (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.fixedNodeWeight;
+  } else {
+    this.displacementX += layout.coolingFactor * (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.noOfChildren;
+    this.displacementY += layout.coolingFactor * (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.noOfChildren;
+  }
 
   if (Math.abs(this.displacementX) > layout.coolingFactor * layout.maxNodeDisplacement) {
     this.displacementX = layout.coolingFactor * layout.maxNodeDisplacement * IMath.sign(this.displacementX);
@@ -1617,11 +1623,44 @@ CoSELayout.prototype.initConstraintVariables = function () {
     var node = allNodes[i];
     this.idToNodeMap.set(node.id, node);
   }
-  // fill fixedNodeSet
+
+  // calculate fixed node weight for given compound node
+  var calculateCompoundWeight = function calculateCompoundWeight(compoundNode) {
+    var nodes = compoundNode.getChild().getNodes();
+    var node;
+    var fixedNodeWeight = 0;
+    for (var i = 0; i < nodes.length; i++) {
+      node = nodes[i];
+      if (node.getChild() == null) {
+        if (self.fixedNodeSet.has(node.id)) {
+          fixedNodeWeight += 100;
+        }
+      } else {
+        fixedNodeWeight += calculateCompoundWeight(node);
+      }
+    }
+    return fixedNodeWeight;
+  };
+
   if (this.constraints.fixedNodeConstraint) {
+    // fill fixedNodeSet
     this.constraints.fixedNodeConstraint.forEach(function (nodeData) {
       self.fixedNodeSet.add(nodeData.nodeId);
     });
+
+    // assign fixed node weights to compounds if they contain fixed nodes
+    var allNodes = this.graphManager.getAllNodes();
+    var node;
+
+    for (var i = 0; i < allNodes.length; i++) {
+      node = allNodes[i];
+      if (node.getChild() != null) {
+        var fixedNodeWeight = calculateCompoundWeight(node);
+        if (fixedNodeWeight > 0) {
+          node.fixedNodeWeight = fixedNodeWeight;
+        }
+      }
+    }
   }
 
   if (this.constraints.relativePlacementConstraint) {
