@@ -314,7 +314,7 @@ CoSELayout.prototype.moveNodes = function () {
 
 // initialize constraint related variables
 CoSELayout.prototype.initConstraintVariables = function () {
-  self = this;
+  var self = this;
   this.idToNodeMap = new Map();
   this.fixedNodeSet = new Set();
 
@@ -578,7 +578,7 @@ CoSELayout.prototype.initConstraintVariables = function () {
 
 // updates node displacements based on constraints
 CoSELayout.prototype.updateDisplacements = function () {
-  self = this;
+  var self = this;
   if(this.constraints.fixedNodeConstraint){
     this.constraints.fixedNodeConstraint.forEach(function(nodeData){
       var fixedNode = self.idToNodeMap.get(nodeData.nodeId);
