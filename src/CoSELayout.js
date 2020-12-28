@@ -61,10 +61,6 @@ CoSELayout.prototype.initParameters = function () {
 
     this.useSmartIdealEdgeLengthCalculation =
             CoSEConstants.DEFAULT_USE_SMART_IDEAL_EDGE_LENGTH_CALCULATION;
-    this.springConstant =
-            FDLayoutConstants.DEFAULT_SPRING_STRENGTH;
-    this.repulsionConstant =
-            FDLayoutConstants.DEFAULT_REPULSION_STRENGTH;
     this.gravityConstant =
             FDLayoutConstants.DEFAULT_GRAVITY_STRENGTH;
     this.compoundGravityConstant =
@@ -1594,7 +1590,7 @@ CoSELayout.prototype.growTree = function(prunedNodesAll)
   var nodeData;  
   for(var i = 0; i < prunedNodesInStep.length; i++){
     nodeData = prunedNodesInStep[i];
-
+    
     this.findPlaceforPrunedNode(nodeData);
     
     nodeData[2].add(nodeData[0]);

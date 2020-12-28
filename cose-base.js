@@ -1374,8 +1374,6 @@ CoSELayout.prototype.initParameters = function () {
     }
 
     this.useSmartIdealEdgeLengthCalculation = CoSEConstants.DEFAULT_USE_SMART_IDEAL_EDGE_LENGTH_CALCULATION;
-    this.springConstant = FDLayoutConstants.DEFAULT_SPRING_STRENGTH;
-    this.repulsionConstant = FDLayoutConstants.DEFAULT_REPULSION_STRENGTH;
     this.gravityConstant = FDLayoutConstants.DEFAULT_GRAVITY_STRENGTH;
     this.compoundGravityConstant = FDLayoutConstants.DEFAULT_COMPOUND_GRAVITY_STRENGTH;
     this.gravityRangeFactor = FDLayoutConstants.DEFAULT_GRAVITY_RANGE_FACTOR;
