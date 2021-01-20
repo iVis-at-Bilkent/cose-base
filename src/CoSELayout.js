@@ -4,6 +4,7 @@ var CoSEGraph = require('./CoSEGraph');
 var CoSENode = require('./CoSENode');
 var CoSEEdge = require('./CoSEEdge');
 var CoSEConstants = require('./CoSEConstants');
+var ConstraintHandler = require('./ConstraintHandler');
 var FDLayoutConstants = require('layout-base').FDLayoutConstants;
 var LayoutConstants = require('layout-base').LayoutConstants;
 var Point = require('layout-base').Point;
@@ -13,11 +14,13 @@ var Integer = require('layout-base').Integer;
 var IGeometry = require('layout-base').IGeometry;
 var LGraph = require('layout-base').LGraph;
 var Transform = require('layout-base').Transform;
+var LinkedList = require('layout-base').LinkedList;
 
 function CoSELayout() {
   FDLayout.call(this);
   
   this.toBeTiled = {}; // Memorize if a node is to be tiled or is tiled
+  this.constraints = {}; // keep layout constraints
 }
 
 CoSELayout.prototype = Object.create(FDLayout.prototype);
@@ -58,10 +61,6 @@ CoSELayout.prototype.initParameters = function () {
 
     this.useSmartIdealEdgeLengthCalculation =
             CoSEConstants.DEFAULT_USE_SMART_IDEAL_EDGE_LENGTH_CALCULATION;
-    this.springConstant =
-            FDLayoutConstants.DEFAULT_SPRING_STRENGTH;
-    this.repulsionConstant =
-            FDLayoutConstants.DEFAULT_REPULSION_STRENGTH;
     this.gravityConstant =
             FDLayoutConstants.DEFAULT_GRAVITY_STRENGTH;
     this.compoundGravityConstant =
@@ -142,8 +141,15 @@ CoSELayout.prototype.classicLayout = function () {
     }
   }
 
+  if(Object.keys(this.constraints).length > 0){
+    ConstraintHandler.handleConstraints(this);
+    this.initConstraintVariables();
+  }
+
   this.initSpringEmbedder();
-  this.runSpringEmbedder();
+  if (CoSEConstants.APPLY_LAYOUT) {
+    this.runSpringEmbedder();
+  }
 
   return true;
 };
@@ -273,6 +279,511 @@ CoSELayout.prototype.runSpringEmbedder = function () {
     }
 
     this.graphManager.updateBounds();
+  }
+};
+
+// overrides moveNodes method in FDLayout
+CoSELayout.prototype.moveNodes = function () {
+  var lNodes = this.getAllNodes();
+  var node;
+
+  // calculate displacement for each node 
+  for (var i = 0; i < lNodes.length; i++)
+  {
+    node = lNodes[i];
+    node.calculateDisplacement();
+  }
+  
+  if(Object.keys(this.constraints).length > 0){
+    this.updateDisplacements();
+  }
+
+  // move each node
+  for (var i = 0; i < lNodes.length; i++)
+  {
+    node = lNodes[i];
+    node.move();
+  }  
+};
+
+// constraint related methods: initConstraintVariables and updateDisplacements
+
+// initialize constraint related variables
+CoSELayout.prototype.initConstraintVariables = function () {
+  var self = this;
+  this.idToNodeMap = new Map();
+  this.fixedNodeSet = new Set();
+
+  var allNodes = this.graphManager.getAllNodes();
+
+  // fill idToNodeMap
+  for(var i = 0; i < allNodes.length; i++) {
+    var node = allNodes[i];
+    this.idToNodeMap.set(node.id, node);
+  }
+
+  // calculate fixed node weight for given compound node
+  var calculateCompoundWeight = function(compoundNode) {
+    var nodes = compoundNode.getChild().getNodes();
+    var node;
+    var fixedNodeWeight = 0;
+    for (var i = 0; i < nodes.length; i++) {
+      node = nodes[i];
+      if (node.getChild() == null) {
+        if(self.fixedNodeSet.has(node.id)) {
+          fixedNodeWeight += 100;
+        }
+      } else {
+        fixedNodeWeight += calculateCompoundWeight(node);
+      }
+    }
+    return fixedNodeWeight;
+  };
+
+  if (this.constraints.fixedNodeConstraint) {
+    // fill fixedNodeSet
+    this.constraints.fixedNodeConstraint.forEach(function (nodeData) {
+      self.fixedNodeSet.add(nodeData.nodeId);
+    });
+
+    // assign fixed node weights to compounds if they contain fixed nodes
+    var allNodes = this.graphManager.getAllNodes();
+    var node;
+
+    for (var i = 0; i < allNodes.length; i++) {
+      node = allNodes[i];
+      if (node.getChild() != null) {
+        let fixedNodeWeight = calculateCompoundWeight(node);
+        if (fixedNodeWeight > 0) {
+          node.fixedNodeWeight = fixedNodeWeight;
+        }
+      }
+    }
+  }
+  
+  if(this.constraints.relativePlacementConstraint) {         
+    var nodeToDummyForVerticalAlignment = new Map();
+    var nodeToDummyForHorizontalAlignment = new Map();
+    this.dummyToNodeForVerticalAlignment = new Map();
+    this.dummyToNodeForHorizontalAlignment = new Map();     
+    this.fixedNodesOnHorizontal = new Set();
+    this.fixedNodesOnVertical = new Set();
+
+    // fill maps and sets
+    this.fixedNodeSet.forEach(function(nodeId){
+      self.fixedNodesOnHorizontal.add(nodeId);
+      self.fixedNodesOnVertical.add(nodeId);
+    });
+    
+    if(this.constraints.alignmentConstraint) {
+      if(this.constraints.alignmentConstraint.vertical) {
+        var verticalAlignment = this.constraints.alignmentConstraint.vertical;
+        for(var i = 0; i < verticalAlignment.length; i++) {
+          this.dummyToNodeForVerticalAlignment.set("dummy" + i, []);
+          verticalAlignment[i].forEach(function(nodeId){
+            nodeToDummyForVerticalAlignment.set(nodeId, "dummy" + i);
+            self.dummyToNodeForVerticalAlignment.get("dummy" + i).push(nodeId);
+            if(self.fixedNodeSet.has(nodeId)) {
+              self.fixedNodesOnHorizontal.add("dummy" + i);
+            }
+          });
+        }
+      }
+      if(this.constraints.alignmentConstraint.horizontal){
+        var horizontalAlignment = this.constraints.alignmentConstraint.horizontal;
+        for(var i = 0; i < horizontalAlignment.length; i++){
+          this.dummyToNodeForHorizontalAlignment.set("dummy" + i, []);
+          horizontalAlignment[i].forEach(function(nodeId){
+            nodeToDummyForHorizontalAlignment.set(nodeId, "dummy" + i);
+            self.dummyToNodeForHorizontalAlignment.get("dummy" + i).push(nodeId);
+            if(self.fixedNodeSet.has(nodeId)){
+              self.fixedNodesOnVertical.add("dummy" + i);
+            }              
+          });
+        }
+      }        
+    }
+    
+    if(CoSEConstants.RELAX_MOVEMENT_ON_CONSTRAINTS) {
+      
+      this.shuffle = function (array) {
+        var j, x, i;
+        for (i = array.length - 1; i >= (2 * array.length / 3); i--) {
+          j = Math.floor(Math.random() * (i + 1));
+          x = array[i];
+          array[i] = array[j];
+          array[j] = x;
+        }
+        return array;
+      };
+
+      this.nodesInRelativeHorizontal = [];
+      this.nodesInRelativeVertical = [];    
+      this.nodeToRelativeConstraintMapHorizontal = new Map();
+      this.nodeToRelativeConstraintMapVertical = new Map();
+      this.nodeToTempPositionMapHorizontal = new Map();
+      this.nodeToTempPositionMapVertical = new Map();
+
+      // fill arrays and maps
+      this.constraints.relativePlacementConstraint.forEach(function(constraint) {
+        if(constraint.left) {
+          let nodeIdLeft = nodeToDummyForVerticalAlignment.has(constraint.left) ? nodeToDummyForVerticalAlignment.get(constraint.left) : constraint.left;
+          let nodeIdRight = nodeToDummyForVerticalAlignment.has(constraint.right) ? nodeToDummyForVerticalAlignment.get(constraint.right) : constraint.right;
+          
+          if(!self.nodesInRelativeHorizontal.includes(nodeIdLeft)) {
+            self.nodesInRelativeHorizontal.push(nodeIdLeft);
+            self.nodeToRelativeConstraintMapHorizontal.set(nodeIdLeft, []);            
+            if(self.dummyToNodeForVerticalAlignment.has(nodeIdLeft)) {
+              self.nodeToTempPositionMapHorizontal.set(nodeIdLeft, self.idToNodeMap.get(self.dummyToNodeForVerticalAlignment.get(nodeIdLeft)[0]).getCenterX());
+            }
+            else {
+              self.nodeToTempPositionMapHorizontal.set(nodeIdLeft, self.idToNodeMap.get(nodeIdLeft).getCenterX());
+            }
+          }
+          if(!self.nodesInRelativeHorizontal.includes(nodeIdRight)) {
+            self.nodesInRelativeHorizontal.push(nodeIdRight);
+            self.nodeToRelativeConstraintMapHorizontal.set(nodeIdRight, []);
+            if(self.dummyToNodeForVerticalAlignment.has(nodeIdRight)) {
+              self.nodeToTempPositionMapHorizontal.set(nodeIdRight, self.idToNodeMap.get(self.dummyToNodeForVerticalAlignment.get(nodeIdRight)[0]).getCenterX());
+            }
+            else {
+              self.nodeToTempPositionMapHorizontal.set(nodeIdRight, self.idToNodeMap.get(nodeIdRight).getCenterX());
+            }          
+          }
+          
+          self.nodeToRelativeConstraintMapHorizontal.get(nodeIdLeft).push({right: nodeIdRight, gap: constraint.gap});
+          self.nodeToRelativeConstraintMapHorizontal.get(nodeIdRight).push({left: nodeIdLeft, gap: constraint.gap});
+        }
+        else {
+          let nodeIdTop = nodeToDummyForHorizontalAlignment.has(constraint.top) ? nodeToDummyForHorizontalAlignment.get(constraint.top) : constraint.top;
+          let nodeIdBottom = nodeToDummyForHorizontalAlignment.has(constraint.bottom) ? nodeToDummyForHorizontalAlignment.get(constraint.bottom) : constraint.bottom;
+          
+          if(!self.nodesInRelativeVertical.includes(nodeIdTop)) {
+            self.nodesInRelativeVertical.push(nodeIdTop);
+            self.nodeToRelativeConstraintMapVertical.set(nodeIdTop, []);
+            if(self.dummyToNodeForHorizontalAlignment.has(nodeIdTop)) {
+              self.nodeToTempPositionMapVertical.set(nodeIdTop, self.idToNodeMap.get(self.dummyToNodeForHorizontalAlignment.get(nodeIdTop)[0]).getCenterY());
+            }
+            else {
+              self.nodeToTempPositionMapVertical.set(nodeIdTop, self.idToNodeMap.get(nodeIdTop).getCenterY());
+            }
+          }
+          if(!self.nodesInRelativeVertical.includes(nodeIdBottom)) {
+            self.nodesInRelativeVertical.push(nodeIdBottom);
+            self.nodeToRelativeConstraintMapVertical.set(nodeIdBottom, []);
+            if(self.dummyToNodeForHorizontalAlignment.has(nodeIdBottom)) {
+              self.nodeToTempPositionMapVertical.set(nodeIdBottom, self.idToNodeMap.get(self.dummyToNodeForHorizontalAlignment.get(nodeIdBottom)[0]).getCenterY());
+            }
+            else {
+              self.nodeToTempPositionMapVertical.set(nodeIdBottom, self.idToNodeMap.get(nodeIdBottom).getCenterY());
+            }          
+          }          
+          self.nodeToRelativeConstraintMapVertical.get(nodeIdTop).push({bottom: nodeIdBottom, gap: constraint.gap});
+          self.nodeToRelativeConstraintMapVertical.get(nodeIdBottom).push({top: nodeIdTop, gap: constraint.gap});
+        }
+      });
+    }
+    else {
+      var subGraphOnHorizontal = new Map(); // subgraph from vertical RP constraints
+      var subGraphOnVertical = new Map(); // subgraph from vertical RP constraints
+
+      // construct subgraphs from relative placement constraints 
+      this.constraints.relativePlacementConstraint.forEach(function(constraint) {
+        if(constraint.left) {
+          var left = nodeToDummyForVerticalAlignment.has(constraint.left) ? nodeToDummyForVerticalAlignment.get(constraint.left) : constraint.left;
+          var right = nodeToDummyForVerticalAlignment.has(constraint.right) ? nodeToDummyForVerticalAlignment.get(constraint.right) : constraint.right;
+          if(subGraphOnHorizontal.has(left)) {
+            subGraphOnHorizontal.get(left).push(right);
+          }
+          else {
+            subGraphOnHorizontal.set(left, [right]); 
+          }
+          if(subGraphOnHorizontal.has(right)) {
+            subGraphOnHorizontal.get(right).push(left);          
+          }
+          else {
+            subGraphOnHorizontal.set(right, [left]);           
+          }
+        }
+        else {
+          var top = nodeToDummyForHorizontalAlignment.has(constraint.top) ? nodeToDummyForHorizontalAlignment.get(constraint.top) : constraint.top;
+          var bottom = nodeToDummyForHorizontalAlignment.has(constraint.bottom) ? nodeToDummyForHorizontalAlignment.get(constraint.bottom) : constraint.bottom;        
+          if(subGraphOnVertical.has(top)) {
+            subGraphOnVertical.get(top).push(bottom);
+          }
+          else {
+            subGraphOnVertical.set(top, [bottom]);          
+          }        
+          if(subGraphOnVertical.has(bottom)) {
+            subGraphOnVertical.get(bottom).push(top);          
+          }
+          else {
+            subGraphOnVertical.set(bottom, [top]);           
+          }        
+        }      
+      });   
+
+      // function to construct components from a given graph 
+      // also returns an array that keeps whether each component contains fixed node
+      var constructComponents = function(graph, fixedNodes){
+        let components = [];
+        let isFixed = [];
+        let queue = new LinkedList();
+        let visited = new Set();
+        let count = 0;
+
+        graph.forEach(function(value, key){
+          if(!visited.has(key)){
+            components[count] = [];
+            isFixed[count] = false;
+            let currentNode = key;
+            queue.push(currentNode);
+            visited.add(currentNode);
+            components[count].push(currentNode);
+
+            while(queue.length != 0){
+              currentNode = queue.shift();
+              if(fixedNodes.has(currentNode)) {
+                isFixed[count] = true;
+              }
+              let neighbors = graph.get(currentNode);
+              neighbors.forEach(function(neighbor){
+                if(!visited.has(neighbor)){
+                  queue.push(neighbor);
+                  visited.add(neighbor);
+                  components[count].push(neighbor);
+                }
+              });
+            }
+            count++;
+          }
+        });
+
+        return { components: components, isFixed: isFixed };
+      };
+
+      var resultOnHorizontal = constructComponents(subGraphOnHorizontal, self.fixedNodesOnHorizontal);
+      this.componentsOnHorizontal = resultOnHorizontal.components;
+      this.fixedComponentsOnHorizontal = resultOnHorizontal.isFixed;
+      var resultOnVertical = constructComponents(subGraphOnVertical, self.fixedNodesOnVertical);
+      this.componentsOnVertical = resultOnVertical.components;
+      this.fixedComponentsOnVertical = resultOnVertical.isFixed;   
+    }
+  }
+};
+
+// updates node displacements based on constraints
+CoSELayout.prototype.updateDisplacements = function () {
+  var self = this;
+  if(this.constraints.fixedNodeConstraint){
+    this.constraints.fixedNodeConstraint.forEach(function(nodeData){
+      var fixedNode = self.idToNodeMap.get(nodeData.nodeId);
+      fixedNode.displacementX = 0;
+      fixedNode.displacementY = 0;
+    });
+  }
+
+  if(this.constraints.alignmentConstraint){
+    if(this.constraints.alignmentConstraint.vertical){
+      var allVerticalAlignments = this.constraints.alignmentConstraint.vertical;
+      for(var i = 0; i < allVerticalAlignments.length; i++){
+        var totalDisplacementX = 0;
+        for(var j = 0; j < allVerticalAlignments[i].length; j++){
+          if(this.fixedNodeSet.has(allVerticalAlignments[i][j])){
+            totalDisplacementX = 0;
+            break;
+          }
+          totalDisplacementX += this.idToNodeMap.get(allVerticalAlignments[i][j]).displacementX;
+        }
+        var averageDisplacementX = totalDisplacementX / allVerticalAlignments[i].length;
+        for(var j = 0; j < allVerticalAlignments[i].length; j++){
+          this.idToNodeMap.get(allVerticalAlignments[i][j]).displacementX = averageDisplacementX;
+        }
+      }
+    }
+    if(this.constraints.alignmentConstraint.horizontal){
+      var allHorizontalAlignments = this.constraints.alignmentConstraint.horizontal;
+      for(var i = 0; i < allHorizontalAlignments.length; i++){
+        var totalDisplacementY = 0;
+        for(var j = 0; j < allHorizontalAlignments[i].length; j++){
+          if(this.fixedNodeSet.has(allHorizontalAlignments[i][j])){
+            totalDisplacementY = 0;
+            break;
+          }
+          totalDisplacementY += this.idToNodeMap.get(allHorizontalAlignments[i][j]).displacementY;
+        }
+        var averageDisplacementY = totalDisplacementY / allHorizontalAlignments[i].length;
+        for(var j = 0; j < allHorizontalAlignments[i].length; j++){
+          this.idToNodeMap.get(allHorizontalAlignments[i][j]).displacementY = averageDisplacementY;
+        }
+      }
+    }
+  }
+  
+  if(this.constraints.relativePlacementConstraint){
+    
+    if(CoSEConstants.RELAX_MOVEMENT_ON_CONSTRAINTS) {
+      // shuffle array to randomize node processing order
+      if (this.totalIterations % 10 == 0) {
+        this.shuffle(this.nodesInRelativeHorizontal);
+        this.shuffle(this.nodesInRelativeVertical);
+      }      
+      
+      this.nodesInRelativeHorizontal.forEach(function(nodeId) {
+        if(!self.fixedNodesOnHorizontal.has(nodeId)) {
+          var displacement = 0;
+          if(self.dummyToNodeForVerticalAlignment.has(nodeId)) {
+            displacement = self.idToNodeMap.get(self.dummyToNodeForVerticalAlignment.get(nodeId)[0]).displacementX;
+          }
+          else {
+            displacement = self.idToNodeMap.get(nodeId).displacementX;
+          }    
+          self.nodeToRelativeConstraintMapHorizontal.get(nodeId).forEach(function(constraint) {
+            if(constraint.right) {
+              var diff = (self.nodeToTempPositionMapHorizontal.get(constraint.right) - self.nodeToTempPositionMapHorizontal.get(nodeId)) - displacement;
+              if(diff < constraint.gap) {
+                displacement -= constraint.gap - diff;
+              }
+            }
+            else {
+              var diff = (self.nodeToTempPositionMapHorizontal.get(nodeId) - self.nodeToTempPositionMapHorizontal.get(constraint.left)) + displacement;
+              if(diff < constraint.gap) {
+                displacement += constraint.gap - diff;
+              }          
+            }
+          });
+          self.nodeToTempPositionMapHorizontal.set(nodeId, self.nodeToTempPositionMapHorizontal.get(nodeId) + displacement);
+          if(self.dummyToNodeForVerticalAlignment.has(nodeId)) {
+            self.dummyToNodeForVerticalAlignment.get(nodeId).forEach(function(nodeId){
+              self.idToNodeMap.get(nodeId).displacementX = displacement;
+            });
+          }
+          else {
+            self.idToNodeMap.get(nodeId).displacementX = displacement;
+          }         
+        }
+      });
+
+      this.nodesInRelativeVertical.forEach(function(nodeId) {
+        if(!self.fixedNodesOnHorizontal.has(nodeId)) {
+          var displacement = 0;
+          if(self.dummyToNodeForHorizontalAlignment.has(nodeId)) {
+            displacement = self.idToNodeMap.get(self.dummyToNodeForHorizontalAlignment.get(nodeId)[0]).displacementY;
+          }
+          else {
+            displacement = self.idToNodeMap.get(nodeId).displacementY;
+          }    
+          self.nodeToRelativeConstraintMapVertical.get(nodeId).forEach(function(constraint) {
+            if(constraint.bottom) {
+              var diff = (self.nodeToTempPositionMapVertical.get(constraint.bottom) - self.nodeToTempPositionMapVertical.get(nodeId)) - displacement;
+              if(diff < constraint.gap) {
+                displacement -= constraint.gap - diff;
+              }
+            }
+            else {
+              var diff = (self.nodeToTempPositionMapVertical.get(nodeId) - self.nodeToTempPositionMapVertical.get(constraint.top)) + displacement;
+              if(diff < constraint.gap) {
+                displacement += constraint.gap - diff;
+              }          
+            }
+          });
+          self.nodeToTempPositionMapVertical.set(nodeId, self.nodeToTempPositionMapVertical.get(nodeId) + displacement);
+          if(self.dummyToNodeForHorizontalAlignment.has(nodeId)) {
+            self.dummyToNodeForHorizontalAlignment.get(nodeId).forEach(function(nodeId){
+              self.idToNodeMap.get(nodeId).displacementY = displacement;
+            });
+          }
+          else {
+            self.idToNodeMap.get(nodeId).displacementY = displacement;
+          }        
+        }
+      });    
+    }
+    else {
+      for(var i = 0; i < this.componentsOnHorizontal.length; i++) {
+        var component = this.componentsOnHorizontal[i];
+        if(this.fixedComponentsOnHorizontal[i]) {
+          for(var j = 0; j < component.length; j++){ 
+            if(this.dummyToNodeForVerticalAlignment.has(component[j])) {
+              this.dummyToNodeForVerticalAlignment.get(component[j]).forEach(function(nodeId){
+                self.idToNodeMap.get(nodeId).displacementX = 0;
+              });
+            }
+            else {
+              this.idToNodeMap.get(component[j]).displacementX = 0;
+            }            
+          }
+        }
+        else {
+          var sum = 0;
+          var count = 0;
+          for(var j = 0; j < component.length; j++){
+            if(this.dummyToNodeForVerticalAlignment.has(component[j])) {
+              var actualNodes = this.dummyToNodeForVerticalAlignment.get(component[j]);
+              sum += actualNodes.length * this.idToNodeMap.get(actualNodes[0]).displacementX;
+              count += actualNodes.length;
+            }
+            else {
+              sum += this.idToNodeMap.get(component[j]).displacementX;
+              count++;
+            }
+          }
+          var averageDisplacement = sum / count;
+          for(var j = 0; j < component.length; j++){ 
+            if(this.dummyToNodeForVerticalAlignment.has(component[j])) {
+              this.dummyToNodeForVerticalAlignment.get(component[j]).forEach(function(nodeId){
+                self.idToNodeMap.get(nodeId).displacementX = averageDisplacement;
+              });
+            }
+            else {
+              this.idToNodeMap.get(component[j]).displacementX = averageDisplacement;
+            }            
+          }        
+        }
+      }
+
+      for(var i = 0; i < this.componentsOnVertical.length; i++) {
+        var component = this.componentsOnVertical[i];
+        if(this.fixedComponentsOnVertical[i]) {
+          for(var j = 0; j < component.length; j++){ 
+            if(this.dummyToNodeForHorizontalAlignment.has(component[j])) {
+              this.dummyToNodeForHorizontalAlignment.get(component[j]).forEach(function(nodeId){
+                self.idToNodeMap.get(nodeId).displacementY = 0;
+              });
+            }
+            else {
+              this.idToNodeMap.get(component[j]).displacementY = 0;
+            }            
+          }
+        }
+        else {
+          var sum = 0;
+          var count = 0;
+          for(var j = 0; j < component.length; j++){
+            if(this.dummyToNodeForHorizontalAlignment.has(component[j])) {
+              var actualNodes = this.dummyToNodeForHorizontalAlignment.get(component[j]);
+              sum += actualNodes.length * this.idToNodeMap.get(actualNodes[0]).displacementY;
+              count += actualNodes.length;
+            }
+            else {
+              sum += this.idToNodeMap.get(component[j]).displacementY;
+              count++;
+            }
+          }
+          var averageDisplacement = sum / count;
+          for(var j = 0; j < component.length; j++){ 
+            if(this.dummyToNodeForHorizontalAlignment.has(component[j])) {
+              this.dummyToNodeForHorizontalAlignment.get(component[j]).forEach(function(nodeId){
+                self.idToNodeMap.get(nodeId).displacementY = averageDisplacement;
+              });
+            }
+            else {
+              this.idToNodeMap.get(component[j]).displacementY = averageDisplacement;
+            }            
+          }        
+        }
+      }
+    }
   }
 };
 
@@ -1079,7 +1590,7 @@ CoSELayout.prototype.growTree = function(prunedNodesAll)
   var nodeData;  
   for(var i = 0; i < prunedNodesInStep.length; i++){
     nodeData = prunedNodesInStep[i];
-
+    
     this.findPlaceforPrunedNode(nodeData);
     
     nodeData[2].add(nodeData[0]);
