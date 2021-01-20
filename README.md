@@ -7,7 +7,7 @@ This is a core module for compound spring embedder based layout styles such as C
 
 ## Dependencies
 
- * layout-base ^1.0.0
+ * layout-base ^2.0.0
 
 ## Usage instructions
 
