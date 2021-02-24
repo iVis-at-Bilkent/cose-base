@@ -2390,6 +2390,7 @@ CoSELayout.prototype.clearZeroDegreeMembers = function () {
     // Set the width and height of the dummy compound as calculated
     compoundNode.rect.width = tiledZeroDegreePack[id].width;
     compoundNode.rect.height = tiledZeroDegreePack[id].height;
+    compoundNode.setCenter(tiledZeroDegreePack[id].centerX, tiledZeroDegreePack[id].centerY);
   });
 };
 
@@ -2546,6 +2547,7 @@ CoSELayout.prototype.tileCompoundMembers = function (childGraphMap, idToNode) {
 
     compoundNode.rect.width = self.tiledMemberPack[id].width;
     compoundNode.rect.height = self.tiledMemberPack[id].height;
+    compoundNode.setCenter(self.tiledMemberPack[id].centerX, self.tiledMemberPack[id].centerY);
   });
 };
 
@@ -2559,7 +2561,9 @@ CoSELayout.prototype.tileNodes = function (nodes, minWidth) {
     width: 0,
     height: minWidth, // assume minHeight equals to minWidth
     verticalPadding: verticalPadding,
-    horizontalPadding: horizontalPadding
+    horizontalPadding: horizontalPadding,
+    centerX: 0,
+    centerY: 0
   };
 
   // Sort the nodes in ascending order of their areas
@@ -2568,6 +2572,19 @@ CoSELayout.prototype.tileNodes = function (nodes, minWidth) {
     if (n1.rect.width * n1.rect.height < n2.rect.width * n2.rect.height) return 1;
     return 0;
   });
+
+  // Create the organization -> calculate compound center
+  var sumCenterX = 0;
+  var sumCenterY = 0;
+  for (var i = 0; i < nodes.length; i++) {
+    var lNode = nodes[i];
+
+    sumCenterX += lNode.getCenterX();
+    sumCenterY += lNode.getCenterY();
+  }
+
+  organization.centerX = sumCenterX / nodes.length;
+  organization.centerY = sumCenterY / nodes.length;
 
   // Create the organization -> tile members
   for (var i = 0; i < nodes.length; i++) {
