@@ -2391,6 +2391,47 @@ CoSELayout.prototype.clearZeroDegreeMembers = function () {
     compoundNode.rect.width = tiledZeroDegreePack[id].width;
     compoundNode.rect.height = tiledZeroDegreePack[id].height;
     compoundNode.setCenter(tiledZeroDegreePack[id].centerX, tiledZeroDegreePack[id].centerY);
+
+    // compound left and top margings for labels
+    // when node labels are included, these values may be set to different values below and are used in tilingPostLayout,
+    // otherwise they stay as zero
+    compoundNode.labelMarginLeft = 0;
+    compoundNode.labelMarginTop = 0;
+
+    // Update compound bounds considering its label properties and set label margins for left and top
+    if (CoSEConstants.NODE_DIMENSIONS_INCLUDE_LABELS) {
+
+      var width = compoundNode.rect.width;
+      var height = compoundNode.rect.height;
+
+      if (compoundNode.labelWidth) {
+        if (compoundNode.labelPosHorizontal == "left") {
+          compoundNode.rect.x -= compoundNode.labelWidth;
+          compoundNode.setWidth(width + compoundNode.labelWidth);
+          compoundNode.labelMarginLeft = compoundNode.labelWidth;
+        } else if (compoundNode.labelPosHorizontal == "center" && compoundNode.labelWidth > width) {
+          compoundNode.rect.x -= (compoundNode.labelWidth - width) / 2;
+          compoundNode.setWidth(compoundNode.labelWidth);
+          compoundNode.labelMarginLeft = (compoundNode.labelWidth - width) / 2;
+        } else if (compoundNode.labelPosHorizontal == "right") {
+          compoundNode.setWidth(width + compoundNode.labelWidth);
+        }
+      }
+
+      if (compoundNode.labelHeight) {
+        if (compoundNode.labelPosVertical == "top") {
+          compoundNode.rect.y -= compoundNode.labelHeight;
+          compoundNode.setHeight(height + compoundNode.labelHeight);
+          compoundNode.labelMarginTop = compoundNode.labelHeight;
+        } else if (compoundNode.labelPosVertical == "center" && compoundNode.labelHeight > height) {
+          compoundNode.rect.y -= (compoundNode.labelHeight - height) / 2;
+          compoundNode.setHeight(compoundNode.labelHeight);
+          compoundNode.labelMarginTop = (compoundNode.labelHeight - height) / 2;
+        } else if (compoundNode.labelPosVertical == "bottom") {
+          compoundNode.setHeight(height + compoundNode.labelHeight);
+        }
+      }
+    }
   });
 };
 
@@ -2400,8 +2441,10 @@ CoSELayout.prototype.repopulateCompounds = function () {
     var id = lCompoundNode.id;
     var horizontalMargin = lCompoundNode.paddingLeft;
     var verticalMargin = lCompoundNode.paddingTop;
+    var labelMarginLeft = lCompoundNode.labelMarginLeft;
+    var labelMarginTop = lCompoundNode.labelMarginTop;
 
-    this.adjustLocations(this.tiledMemberPack[id], lCompoundNode.rect.x, lCompoundNode.rect.y, horizontalMargin, verticalMargin);
+    this.adjustLocations(this.tiledMemberPack[id], lCompoundNode.rect.x, lCompoundNode.rect.y, horizontalMargin, verticalMargin, labelMarginLeft, labelMarginTop);
   }
 };
 
@@ -2413,9 +2456,11 @@ CoSELayout.prototype.repopulateZeroDegreeMembers = function () {
     var compoundNode = self.idToDummyNode[id]; // Get the dummy compound by its id
     var horizontalMargin = compoundNode.paddingLeft;
     var verticalMargin = compoundNode.paddingTop;
+    var labelMarginLeft = compoundNode.labelMarginLeft;
+    var labelMarginTop = compoundNode.labelMarginTop;
 
     // Adjust the positions of nodes wrt its compound
-    self.adjustLocations(tiledPack[id], compoundNode.rect.x, compoundNode.rect.y, horizontalMargin, verticalMargin);
+    self.adjustLocations(tiledPack[id], compoundNode.rect.x, compoundNode.rect.y, horizontalMargin, verticalMargin, labelMarginLeft, labelMarginTop);
   });
 };
 
@@ -2509,9 +2554,9 @@ CoSELayout.prototype.fillCompexOrderByDFS = function (children) {
 /**
 * This method places each zero degree member wrt given (x,y) coordinates (top left).
 */
-CoSELayout.prototype.adjustLocations = function (organization, x, y, compoundHorizontalMargin, compoundVerticalMargin) {
-  x += compoundHorizontalMargin;
-  y += compoundVerticalMargin;
+CoSELayout.prototype.adjustLocations = function (organization, x, y, compoundHorizontalMargin, compoundVerticalMargin, compoundLabelMarginLeft, compoundLabelMarginTop) {
+  x += compoundHorizontalMargin + compoundLabelMarginLeft;
+  y += compoundVerticalMargin + compoundLabelMarginTop;
 
   var left = x;
 
@@ -2548,6 +2593,47 @@ CoSELayout.prototype.tileCompoundMembers = function (childGraphMap, idToNode) {
     compoundNode.rect.width = self.tiledMemberPack[id].width;
     compoundNode.rect.height = self.tiledMemberPack[id].height;
     compoundNode.setCenter(self.tiledMemberPack[id].centerX, self.tiledMemberPack[id].centerY);
+
+    // compound left and top margings for labels
+    // when node labels are included, these values may be set to different values below and are used in tilingPostLayout,
+    // otherwise they stay as zero
+    compoundNode.labelMarginLeft = 0;
+    compoundNode.labelMarginTop = 0;
+
+    // Update compound bounds considering its label properties and set label margins for left and top
+    if (CoSEConstants.NODE_DIMENSIONS_INCLUDE_LABELS) {
+
+      var width = compoundNode.rect.width;
+      var height = compoundNode.rect.height;
+
+      if (compoundNode.labelWidth) {
+        if (compoundNode.labelPosHorizontal == "left") {
+          compoundNode.rect.x -= compoundNode.labelWidth;
+          compoundNode.setWidth(width + compoundNode.labelWidth);
+          compoundNode.labelMarginLeft = compoundNode.labelWidth;
+        } else if (compoundNode.labelPosHorizontal == "center" && compoundNode.labelWidth > width) {
+          compoundNode.rect.x -= (compoundNode.labelWidth - width) / 2;
+          compoundNode.setWidth(compoundNode.labelWidth);
+          compoundNode.labelMarginLeft = (compoundNode.labelWidth - width) / 2;
+        } else if (compoundNode.labelPosHorizontal == "right") {
+          compoundNode.setWidth(width + compoundNode.labelWidth);
+        }
+      }
+
+      if (compoundNode.labelHeight) {
+        if (compoundNode.labelPosVertical == "top") {
+          compoundNode.rect.y -= compoundNode.labelHeight;
+          compoundNode.setHeight(height + compoundNode.labelHeight);
+          compoundNode.labelMarginTop = compoundNode.labelHeight;
+        } else if (compoundNode.labelPosVertical == "center" && compoundNode.labelHeight > height) {
+          compoundNode.rect.y -= (compoundNode.labelHeight - height) / 2;
+          compoundNode.setHeight(compoundNode.labelHeight);
+          compoundNode.labelMarginTop = (compoundNode.labelHeight - height) / 2;
+        } else if (compoundNode.labelPosVertical == "bottom") {
+          compoundNode.setHeight(height + compoundNode.labelHeight);
+        }
+      }
+    }
   });
 };
 
