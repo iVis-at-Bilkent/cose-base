@@ -108,7 +108,10 @@ CoSEConstants.TRANSFORM_ON_CONSTRAINT_HANDLING = true;
 CoSEConstants.ENFORCE_CONSTRAINTS = true;
 CoSEConstants.APPLY_LAYOUT = true;
 CoSEConstants.RELAX_MOVEMENT_ON_CONSTRAINTS = true;
-CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL = false; // make this true when cose is used incrementally as a part of other non-incremental layout
+CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL = true; // this should be set to false if there will be a constraint
+// This constant is for differentiating whether actual layout algorithm that uses cose-base wants to apply only incremental layout or 
+// an incremental layout on top of a randomized layout. If it is only incremental layout, then this constant should be true.
+CoSEConstants.PURE_INCREMENTAL = CoSEConstants.DEFAULT_INCREMENTAL;
 
 module.exports = CoSEConstants;
 
@@ -1326,6 +1329,7 @@ var FDLayoutConstants = __webpack_require__(0).FDLayoutConstants;
 var LayoutConstants = __webpack_require__(0).LayoutConstants;
 var Point = __webpack_require__(0).Point;
 var PointD = __webpack_require__(0).PointD;
+var DimensionD = __webpack_require__(0).DimensionD;
 var Layout = __webpack_require__(0).Layout;
 var Integer = __webpack_require__(0).Integer;
 var IGeometry = __webpack_require__(0).IGeometry;
@@ -1513,7 +1517,7 @@ CoSELayout.prototype.tick = function () {
 
         this.graphManager.updateBounds();
         this.updateGrid();
-        this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL;
+        if (CoSEConstants.PURE_INCREMENTAL) this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL / 2;else this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL;
       } else {
         this.isTreeGrowing = false;
         this.isGrowthFinished = true;
@@ -1530,7 +1534,7 @@ CoSELayout.prototype.tick = function () {
       this.graphManager.updateBounds();
       this.updateGrid();
     }
-    this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL * ((100 - this.afterGrowthIterations) / 100);
+    if (CoSEConstants.PURE_INCREMENTAL) this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL / 2 * ((100 - this.afterGrowthIterations) / 100);else this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL * ((100 - this.afterGrowthIterations) / 100);
     this.afterGrowthIterations++;
   }
 
@@ -2884,7 +2888,13 @@ CoSELayout.prototype.reduceTrees = function () {
     for (var i = 0; i < allNodes.length; i++) {
       node = allNodes[i];
       if (node.getEdges().length == 1 && !node.getEdges()[0].isInterGraph && node.getChild() == null) {
-        prunedNodesInStepTemp.push([node, node.getEdges()[0], node.getOwner()]);
+        if (CoSEConstants.PURE_INCREMENTAL) {
+          var otherEnd = node.getEdges()[0].getOtherEnd(node);
+          var relativePosition = new DimensionD(node.getCenterX() - otherEnd.getCenterX(), node.getCenterY() - otherEnd.getCenterY());
+          prunedNodesInStepTemp.push([node, node.getEdges()[0], node.getOwner(), relativePosition]);
+        } else {
+          prunedNodesInStepTemp.push([node, node.getEdges()[0], node.getOwner()]);
+        }
         containsLeaf = true;
       }
     }
@@ -2935,115 +2945,121 @@ CoSELayout.prototype.findPlaceforPrunedNode = function (nodeData) {
   } else {
     nodeToConnect = nodeData[1].source;
   }
-  var startGridX = nodeToConnect.startX;
-  var finishGridX = nodeToConnect.finishX;
-  var startGridY = nodeToConnect.startY;
-  var finishGridY = nodeToConnect.finishY;
 
-  var upNodeCount = 0;
-  var downNodeCount = 0;
-  var rightNodeCount = 0;
-  var leftNodeCount = 0;
-  var controlRegions = [upNodeCount, rightNodeCount, downNodeCount, leftNodeCount];
+  if (CoSEConstants.PURE_INCREMENTAL) {
+    prunedNode.setCenter(nodeToConnect.getCenterX() + nodeData[3].getWidth(), nodeToConnect.getCenterY() + nodeData[3].getHeight());
+    console.log(prunedNode.id + " " + prunedNode.getCenterX() + " " + prunedNode.getCenterY());
+  } else {
+    var startGridX = nodeToConnect.startX;
+    var finishGridX = nodeToConnect.finishX;
+    var startGridY = nodeToConnect.startY;
+    var finishGridY = nodeToConnect.finishY;
 
-  if (startGridY > 0) {
-    for (var i = startGridX; i <= finishGridX; i++) {
-      controlRegions[0] += this.grid[i][startGridY - 1].length + this.grid[i][startGridY].length - 1;
-    }
-  }
-  if (finishGridX < this.grid.length - 1) {
-    for (var i = startGridY; i <= finishGridY; i++) {
-      controlRegions[1] += this.grid[finishGridX + 1][i].length + this.grid[finishGridX][i].length - 1;
-    }
-  }
-  if (finishGridY < this.grid[0].length - 1) {
-    for (var i = startGridX; i <= finishGridX; i++) {
-      controlRegions[2] += this.grid[i][finishGridY + 1].length + this.grid[i][finishGridY].length - 1;
-    }
-  }
-  if (startGridX > 0) {
-    for (var i = startGridY; i <= finishGridY; i++) {
-      controlRegions[3] += this.grid[startGridX - 1][i].length + this.grid[startGridX][i].length - 1;
-    }
-  }
-  var min = Integer.MAX_VALUE;
-  var minCount;
-  var minIndex;
-  for (var j = 0; j < controlRegions.length; j++) {
-    if (controlRegions[j] < min) {
-      min = controlRegions[j];
-      minCount = 1;
-      minIndex = j;
-    } else if (controlRegions[j] == min) {
-      minCount++;
-    }
-  }
+    var upNodeCount = 0;
+    var downNodeCount = 0;
+    var rightNodeCount = 0;
+    var leftNodeCount = 0;
+    var controlRegions = [upNodeCount, rightNodeCount, downNodeCount, leftNodeCount];
 
-  if (minCount == 3 && min == 0) {
-    if (controlRegions[0] == 0 && controlRegions[1] == 0 && controlRegions[2] == 0) {
-      gridForPrunedNode = 1;
-    } else if (controlRegions[0] == 0 && controlRegions[1] == 0 && controlRegions[3] == 0) {
-      gridForPrunedNode = 0;
-    } else if (controlRegions[0] == 0 && controlRegions[2] == 0 && controlRegions[3] == 0) {
-      gridForPrunedNode = 3;
-    } else if (controlRegions[1] == 0 && controlRegions[2] == 0 && controlRegions[3] == 0) {
-      gridForPrunedNode = 2;
-    }
-  } else if (minCount == 2 && min == 0) {
-    var random = Math.floor(Math.random() * 2);
-    if (controlRegions[0] == 0 && controlRegions[1] == 0) {
-      ;
-      if (random == 0) {
-        gridForPrunedNode = 0;
-      } else {
-        gridForPrunedNode = 1;
+    if (startGridY > 0) {
+      for (var i = startGridX; i <= finishGridX; i++) {
+        controlRegions[0] += this.grid[i][startGridY - 1].length + this.grid[i][startGridY].length - 1;
       }
-    } else if (controlRegions[0] == 0 && controlRegions[2] == 0) {
-      if (random == 0) {
+    }
+    if (finishGridX < this.grid.length - 1) {
+      for (var i = startGridY; i <= finishGridY; i++) {
+        controlRegions[1] += this.grid[finishGridX + 1][i].length + this.grid[finishGridX][i].length - 1;
+      }
+    }
+    if (finishGridY < this.grid[0].length - 1) {
+      for (var i = startGridX; i <= finishGridX; i++) {
+        controlRegions[2] += this.grid[i][finishGridY + 1].length + this.grid[i][finishGridY].length - 1;
+      }
+    }
+    if (startGridX > 0) {
+      for (var i = startGridY; i <= finishGridY; i++) {
+        controlRegions[3] += this.grid[startGridX - 1][i].length + this.grid[startGridX][i].length - 1;
+      }
+    }
+    var min = Integer.MAX_VALUE;
+    var minCount;
+    var minIndex;
+    for (var j = 0; j < controlRegions.length; j++) {
+      if (controlRegions[j] < min) {
+        min = controlRegions[j];
+        minCount = 1;
+        minIndex = j;
+      } else if (controlRegions[j] == min) {
+        minCount++;
+      }
+    }
+
+    if (minCount == 3 && min == 0) {
+      if (controlRegions[0] == 0 && controlRegions[1] == 0 && controlRegions[2] == 0) {
+        gridForPrunedNode = 1;
+      } else if (controlRegions[0] == 0 && controlRegions[1] == 0 && controlRegions[3] == 0) {
         gridForPrunedNode = 0;
-      } else {
+      } else if (controlRegions[0] == 0 && controlRegions[2] == 0 && controlRegions[3] == 0) {
+        gridForPrunedNode = 3;
+      } else if (controlRegions[1] == 0 && controlRegions[2] == 0 && controlRegions[3] == 0) {
         gridForPrunedNode = 2;
       }
-    } else if (controlRegions[0] == 0 && controlRegions[3] == 0) {
-      if (random == 0) {
-        gridForPrunedNode = 0;
+    } else if (minCount == 2 && min == 0) {
+      var random = Math.floor(Math.random() * 2);
+      if (controlRegions[0] == 0 && controlRegions[1] == 0) {
+        ;
+        if (random == 0) {
+          gridForPrunedNode = 0;
+        } else {
+          gridForPrunedNode = 1;
+        }
+      } else if (controlRegions[0] == 0 && controlRegions[2] == 0) {
+        if (random == 0) {
+          gridForPrunedNode = 0;
+        } else {
+          gridForPrunedNode = 2;
+        }
+      } else if (controlRegions[0] == 0 && controlRegions[3] == 0) {
+        if (random == 0) {
+          gridForPrunedNode = 0;
+        } else {
+          gridForPrunedNode = 3;
+        }
+      } else if (controlRegions[1] == 0 && controlRegions[2] == 0) {
+        if (random == 0) {
+          gridForPrunedNode = 1;
+        } else {
+          gridForPrunedNode = 2;
+        }
+      } else if (controlRegions[1] == 0 && controlRegions[3] == 0) {
+        if (random == 0) {
+          gridForPrunedNode = 1;
+        } else {
+          gridForPrunedNode = 3;
+        }
       } else {
-        gridForPrunedNode = 3;
+        if (random == 0) {
+          gridForPrunedNode = 2;
+        } else {
+          gridForPrunedNode = 3;
+        }
       }
-    } else if (controlRegions[1] == 0 && controlRegions[2] == 0) {
-      if (random == 0) {
-        gridForPrunedNode = 1;
-      } else {
-        gridForPrunedNode = 2;
-      }
-    } else if (controlRegions[1] == 0 && controlRegions[3] == 0) {
-      if (random == 0) {
-        gridForPrunedNode = 1;
-      } else {
-        gridForPrunedNode = 3;
-      }
+    } else if (minCount == 4 && min == 0) {
+      var random = Math.floor(Math.random() * 4);
+      gridForPrunedNode = random;
     } else {
-      if (random == 0) {
-        gridForPrunedNode = 2;
-      } else {
-        gridForPrunedNode = 3;
-      }
+      gridForPrunedNode = minIndex;
     }
-  } else if (minCount == 4 && min == 0) {
-    var random = Math.floor(Math.random() * 4);
-    gridForPrunedNode = random;
-  } else {
-    gridForPrunedNode = minIndex;
-  }
 
-  if (gridForPrunedNode == 0) {
-    prunedNode.setCenter(nodeToConnect.getCenterX(), nodeToConnect.getCenterY() - nodeToConnect.getHeight() / 2 - FDLayoutConstants.DEFAULT_EDGE_LENGTH - prunedNode.getHeight() / 2);
-  } else if (gridForPrunedNode == 1) {
-    prunedNode.setCenter(nodeToConnect.getCenterX() + nodeToConnect.getWidth() / 2 + FDLayoutConstants.DEFAULT_EDGE_LENGTH + prunedNode.getWidth() / 2, nodeToConnect.getCenterY());
-  } else if (gridForPrunedNode == 2) {
-    prunedNode.setCenter(nodeToConnect.getCenterX(), nodeToConnect.getCenterY() + nodeToConnect.getHeight() / 2 + FDLayoutConstants.DEFAULT_EDGE_LENGTH + prunedNode.getHeight() / 2);
-  } else {
-    prunedNode.setCenter(nodeToConnect.getCenterX() - nodeToConnect.getWidth() / 2 - FDLayoutConstants.DEFAULT_EDGE_LENGTH - prunedNode.getWidth() / 2, nodeToConnect.getCenterY());
+    if (gridForPrunedNode == 0) {
+      prunedNode.setCenter(nodeToConnect.getCenterX(), nodeToConnect.getCenterY() - nodeToConnect.getHeight() / 2 - FDLayoutConstants.DEFAULT_EDGE_LENGTH - prunedNode.getHeight() / 2);
+    } else if (gridForPrunedNode == 1) {
+      prunedNode.setCenter(nodeToConnect.getCenterX() + nodeToConnect.getWidth() / 2 + FDLayoutConstants.DEFAULT_EDGE_LENGTH + prunedNode.getWidth() / 2, nodeToConnect.getCenterY());
+    } else if (gridForPrunedNode == 2) {
+      prunedNode.setCenter(nodeToConnect.getCenterX(), nodeToConnect.getCenterY() + nodeToConnect.getHeight() / 2 + FDLayoutConstants.DEFAULT_EDGE_LENGTH + prunedNode.getHeight() / 2);
+    } else {
+      prunedNode.setCenter(nodeToConnect.getCenterX() - nodeToConnect.getWidth() / 2 - FDLayoutConstants.DEFAULT_EDGE_LENGTH - prunedNode.getWidth() / 2, nodeToConnect.getCenterY());
+    }
   }
 };
 
