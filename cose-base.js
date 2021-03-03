@@ -2948,7 +2948,6 @@ CoSELayout.prototype.findPlaceforPrunedNode = function (nodeData) {
 
   if (CoSEConstants.PURE_INCREMENTAL) {
     prunedNode.setCenter(nodeToConnect.getCenterX() + nodeData[3].getWidth(), nodeToConnect.getCenterY() + nodeData[3].getHeight());
-    console.log(prunedNode.id + " " + prunedNode.getCenterX() + " " + prunedNode.getCenterY());
   } else {
     var startGridX = nodeToConnect.startX;
     var finishGridX = nodeToConnect.finishX;
