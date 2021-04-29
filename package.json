@@ -30,8 +30,9 @@
     "rimraf": "^2.6.2",
     "update": "^0.7.4",
     "updater-license": "^1.0.0",
-    "webpack": "^2.6.1",
-    "webpack-dev-server": "^2.4.5"
+    "webpack": "^5.36.1",
+    "webpack-cli": "^4.6.0",
+    "webpack-dev-server": "^3.11.2"
   },
   "dependencies": {
     "layout-base": "https://github.com/iVis-at-Bilkent/layout-base#unstable"
