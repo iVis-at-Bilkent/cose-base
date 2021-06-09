@@ -1382,19 +1382,19 @@ CoSELayout.prototype.initParameters = function () {
     this.compoundGravityConstant = FDLayoutConstants.DEFAULT_COMPOUND_GRAVITY_STRENGTH;
     this.gravityRangeFactor = FDLayoutConstants.DEFAULT_GRAVITY_RANGE_FACTOR;
     this.compoundGravityRangeFactor = FDLayoutConstants.DEFAULT_COMPOUND_GRAVITY_RANGE_FACTOR;
+
+    // variables for tree reduction support
+    this.prunedNodesAll = [];
+    this.growTreeIterations = 0;
+    this.afterGrowthIterations = 0;
+    this.isTreeGrowing = false;
+    this.isGrowthFinished = false;
   }
 };
 
 // This method is used to set CoSE related parameters used by spring embedder.
 CoSELayout.prototype.initSpringEmbedder = function () {
   FDLayout.prototype.initSpringEmbedder.call(this);
-
-  // variables for tree reduction support
-  this.prunedNodesAll = [];
-  this.growTreeIterations = 0;
-  this.afterGrowthIterations = 0;
-  this.isTreeGrowing = false;
-  this.isGrowthFinished = false;
 
   // variables for cooling
   this.coolingCycle = 0;
