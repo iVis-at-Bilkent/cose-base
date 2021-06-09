@@ -69,21 +69,26 @@ CoSELayout.prototype.initParameters = function () {
     this.gravityRangeFactor =
             FDLayoutConstants.DEFAULT_GRAVITY_RANGE_FACTOR;
     this.compoundGravityRangeFactor =
-            FDLayoutConstants.DEFAULT_COMPOUND_GRAVITY_RANGE_FACTOR;
-    
-    // variables for tree reduction support
-    this.prunedNodesAll = [];
-    this.growTreeIterations = 0;
-    this.afterGrowthIterations = 0;
-    this.isTreeGrowing = false;
-    this.isGrowthFinished = false;
-    
-    // variables for cooling
-    this.coolingCycle = 0;
-    this.maxCoolingCycle = this.maxIterations/FDLayoutConstants.CONVERGENCE_CHECK_PERIOD;
-    this.finalTemperature = FDLayoutConstants.CONVERGENCE_CHECK_PERIOD/this.maxIterations;
-    this.coolingAdjuster = 1;     
+            FDLayoutConstants.DEFAULT_COMPOUND_GRAVITY_RANGE_FACTOR;     
   }
+};
+
+// This method is used to set CoSE related parameters used by spring embedder.
+CoSELayout.prototype.initSpringEmbedder = function () {
+  FDLayout.prototype.initSpringEmbedder.call(this);
+  
+  // variables for tree reduction support
+  this.prunedNodesAll = [];
+  this.growTreeIterations = 0;
+  this.afterGrowthIterations = 0;
+  this.isTreeGrowing = false;
+  this.isGrowthFinished = false;
+
+  // variables for cooling
+  this.coolingCycle = 0;
+  this.maxCoolingCycle = this.maxIterations/FDLayoutConstants.CONVERGENCE_CHECK_PERIOD;
+  this.finalTemperature = 0.04;
+  this.coolingAdjuster = 1;  
 };
 
 CoSELayout.prototype.layout = function () {
