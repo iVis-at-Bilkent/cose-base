@@ -22,7 +22,6 @@
     "babel-loader": "^7.0.0",
     "babel-preset-env": "^1.5.1",
     "camelcase": "^4.1.0",
-    "cpy-cli": "^1.0.1",
     "cross-env": "^5.1.6",
     "eslint": "^3.19.0",
     "gh-pages": "^1.1.0",
