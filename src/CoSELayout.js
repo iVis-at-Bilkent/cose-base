@@ -9,6 +9,7 @@ var FDLayoutConstants = require('layout-base').FDLayoutConstants;
 var LayoutConstants = require('layout-base').LayoutConstants;
 var Point = require('layout-base').Point;
 var PointD = require('layout-base').PointD;
+var DimensionD = require('layout-base').DimensionD;
 var Layout = require('layout-base').Layout;
 var Integer = require('layout-base').Integer;
 var IGeometry = require('layout-base').IGeometry;
@@ -75,14 +76,19 @@ CoSELayout.prototype.initParameters = function () {
     this.growTreeIterations = 0;
     this.afterGrowthIterations = 0;
     this.isTreeGrowing = false;
-    this.isGrowthFinished = false;
-    
-    // variables for cooling
-    this.coolingCycle = 0;
-    this.maxCoolingCycle = this.maxIterations/FDLayoutConstants.CONVERGENCE_CHECK_PERIOD;
-    this.finalTemperature = FDLayoutConstants.CONVERGENCE_CHECK_PERIOD/this.maxIterations;
-    this.coolingAdjuster = 1;     
+    this.isGrowthFinished = false;    
   }
+};
+
+// This method is used to set CoSE related parameters used by spring embedder.
+CoSELayout.prototype.initSpringEmbedder = function () {
+  FDLayout.prototype.initSpringEmbedder.call(this);
+
+  // variables for cooling
+  this.coolingCycle = 0;
+  this.maxCoolingCycle = this.maxIterations/FDLayoutConstants.CONVERGENCE_CHECK_PERIOD;
+  this.finalTemperature = 0.04;
+  this.coolingAdjuster = 1;  
 };
 
 CoSELayout.prototype.layout = function () {
@@ -207,8 +213,11 @@ CoSELayout.prototype.tick = function() {
         this.graphManager.setAllNodesToApplyGravitation(intersection);
         
         this.graphManager.updateBounds();
-        this.updateGrid(); 
-        this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL; 
+        this.updateGrid();
+        if(CoSEConstants.PURE_INCREMENTAL)
+          this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL / 2;
+        else
+          this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL;
       }
       else {
         this.isTreeGrowing = false;  
@@ -227,7 +236,10 @@ CoSELayout.prototype.tick = function() {
       this.graphManager.updateBounds();
       this.updateGrid(); 
     }
-    this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL * ((100 - this.afterGrowthIterations) / 100);
+    if(CoSEConstants.PURE_INCREMENTAL)
+      this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL / 2 * ((100 - this.afterGrowthIterations) / 100);
+    else
+      this.coolingFactor = FDLayoutConstants.DEFAULT_COOLING_FACTOR_INCREMENTAL * ((100 - this.afterGrowthIterations) / 100);
     this.afterGrowthIterations++;
   }
   
@@ -1156,6 +1168,52 @@ CoSELayout.prototype.clearZeroDegreeMembers = function () {
     // Set the width and height of the dummy compound as calculated
     compoundNode.rect.width = tiledZeroDegreePack[id].width;
     compoundNode.rect.height = tiledZeroDegreePack[id].height;
+    compoundNode.setCenter(tiledZeroDegreePack[id].centerX, tiledZeroDegreePack[id].centerY);
+
+    // compound left and top margings for labels
+    // when node labels are included, these values may be set to different values below and are used in tilingPostLayout,
+    // otherwise they stay as zero
+    compoundNode.labelMarginLeft = 0;
+    compoundNode.labelMarginTop = 0;
+
+    // Update compound bounds considering its label properties and set label margins for left and top
+    if(CoSEConstants.NODE_DIMENSIONS_INCLUDE_LABELS){
+
+      var width = compoundNode.rect.width;
+      var height = compoundNode.rect.height;
+
+      if(compoundNode.labelWidth){
+        if(compoundNode.labelPosHorizontal == "left"){
+          compoundNode.rect.x -= (compoundNode.labelWidth);
+          compoundNode.setWidth(width + compoundNode.labelWidth);
+          compoundNode.labelMarginLeft = compoundNode.labelWidth;
+        }
+        else if(compoundNode.labelPosHorizontal == "center" && compoundNode.labelWidth > width){
+          compoundNode.rect.x -= (compoundNode.labelWidth - width) / 2;
+          compoundNode.setWidth(compoundNode.labelWidth);
+          compoundNode.labelMarginLeft = (compoundNode.labelWidth - width) / 2;
+        }
+        else if(compoundNode.labelPosHorizontal == "right"){
+          compoundNode.setWidth(width + compoundNode.labelWidth);
+        }
+      }
+
+      if(compoundNode.labelHeight){
+        if(compoundNode.labelPosVertical == "top"){
+          compoundNode.rect.y -= (compoundNode.labelHeight);
+          compoundNode.setHeight(height + compoundNode.labelHeight);
+          compoundNode.labelMarginTop = compoundNode.labelHeight;
+        }
+        else if(compoundNode.labelPosVertical == "center" && compoundNode.labelHeight > height){
+          compoundNode.rect.y -= (compoundNode.labelHeight - height) / 2;
+          compoundNode.setHeight(compoundNode.labelHeight);
+          compoundNode.labelMarginTop = (compoundNode.labelHeight - height) / 2;
+        }
+        else if(compoundNode.labelPosVertical == "bottom"){
+          compoundNode.setHeight(height + compoundNode.labelHeight);
+        }
+      }
+    }
   });
 };
 
@@ -1165,8 +1223,10 @@ CoSELayout.prototype.repopulateCompounds = function () {
     var id = lCompoundNode.id;
     var horizontalMargin = lCompoundNode.paddingLeft;
     var verticalMargin = lCompoundNode.paddingTop;
+    var labelMarginLeft = lCompoundNode.labelMarginLeft;
+    var labelMarginTop = lCompoundNode.labelMarginTop;
 
-    this.adjustLocations(this.tiledMemberPack[id], lCompoundNode.rect.x, lCompoundNode.rect.y, horizontalMargin, verticalMargin);
+    this.adjustLocations(this.tiledMemberPack[id], lCompoundNode.rect.x, lCompoundNode.rect.y, horizontalMargin, verticalMargin, labelMarginLeft, labelMarginTop);
   }
 };
 
@@ -1178,9 +1238,11 @@ CoSELayout.prototype.repopulateZeroDegreeMembers = function () {
     var compoundNode = self.idToDummyNode[id]; // Get the dummy compound by its id
     var horizontalMargin = compoundNode.paddingLeft;
     var verticalMargin = compoundNode.paddingTop;
+    var labelMarginLeft = compoundNode.labelMarginLeft;
+    var labelMarginTop = compoundNode.labelMarginTop;
 
     // Adjust the positions of nodes wrt its compound
-    self.adjustLocations(tiledPack[id], compoundNode.rect.x, compoundNode.rect.y, horizontalMargin, verticalMargin);
+    self.adjustLocations(tiledPack[id], compoundNode.rect.x, compoundNode.rect.y, horizontalMargin, verticalMargin, labelMarginLeft, labelMarginTop);
   });
 };
 
@@ -1274,9 +1336,9 @@ CoSELayout.prototype.fillCompexOrderByDFS = function (children) {
 /**
 * This method places each zero degree member wrt given (x,y) coordinates (top left).
 */
-CoSELayout.prototype.adjustLocations = function (organization, x, y, compoundHorizontalMargin, compoundVerticalMargin) {
-  x += compoundHorizontalMargin;
-  y += compoundVerticalMargin;
+CoSELayout.prototype.adjustLocations = function (organization, x, y, compoundHorizontalMargin, compoundVerticalMargin, compoundLabelMarginLeft, compoundLabelMarginTop) {
+  x += compoundHorizontalMargin + compoundLabelMarginLeft;
+  y += compoundVerticalMargin + compoundLabelMarginTop;
 
   var left = x;
 
@@ -1313,6 +1375,52 @@ CoSELayout.prototype.tileCompoundMembers = function (childGraphMap, idToNode) {
 
     compoundNode.rect.width = self.tiledMemberPack[id].width;
     compoundNode.rect.height = self.tiledMemberPack[id].height;
+    compoundNode.setCenter(self.tiledMemberPack[id].centerX, self.tiledMemberPack[id].centerY);
+
+    // compound left and top margings for labels
+    // when node labels are included, these values may be set to different values below and are used in tilingPostLayout,
+    // otherwise they stay as zero
+    compoundNode.labelMarginLeft = 0;
+    compoundNode.labelMarginTop = 0;
+
+    // Update compound bounds considering its label properties and set label margins for left and top
+    if(CoSEConstants.NODE_DIMENSIONS_INCLUDE_LABELS){
+
+      var width = compoundNode.rect.width;
+      var height = compoundNode.rect.height;
+
+      if(compoundNode.labelWidth){
+        if(compoundNode.labelPosHorizontal == "left"){
+          compoundNode.rect.x -= (compoundNode.labelWidth);
+          compoundNode.setWidth(width + compoundNode.labelWidth);
+          compoundNode.labelMarginLeft = compoundNode.labelWidth;
+        }
+        else if(compoundNode.labelPosHorizontal == "center" && compoundNode.labelWidth > width){
+          compoundNode.rect.x -= (compoundNode.labelWidth - width) / 2;
+          compoundNode.setWidth(compoundNode.labelWidth);
+          compoundNode.labelMarginLeft = (compoundNode.labelWidth - width) / 2;
+        }
+        else if(compoundNode.labelPosHorizontal == "right"){
+          compoundNode.setWidth(width + compoundNode.labelWidth);
+        }
+      }
+
+      if(compoundNode.labelHeight){
+        if(compoundNode.labelPosVertical == "top"){
+          compoundNode.rect.y -= (compoundNode.labelHeight);
+          compoundNode.setHeight(height + compoundNode.labelHeight);
+          compoundNode.labelMarginTop = compoundNode.labelHeight;
+        }
+        else if(compoundNode.labelPosVertical == "center" && compoundNode.labelHeight > height){
+          compoundNode.rect.y -= (compoundNode.labelHeight - height) / 2;
+          compoundNode.setHeight(compoundNode.labelHeight);
+          compoundNode.labelMarginTop = (compoundNode.labelHeight - height) / 2;
+        }
+        else if(compoundNode.labelPosVertical == "bottom"){
+          compoundNode.setHeight(height + compoundNode.labelHeight);
+        }
+      }
+    }
   });
 };
 
@@ -1326,7 +1434,9 @@ CoSELayout.prototype.tileNodes = function (nodes, minWidth) {
     width: 0,
     height: minWidth, // assume minHeight equals to minWidth
     verticalPadding: verticalPadding,
-    horizontalPadding: horizontalPadding
+    horizontalPadding: horizontalPadding,
+    centerX: 0,
+    centerY: 0
   };
 
   // Sort the nodes in ascending order of their areas
@@ -1337,6 +1447,19 @@ CoSELayout.prototype.tileNodes = function (nodes, minWidth) {
       return 1;
     return 0;
   });
+
+  // Create the organization -> calculate compound center
+  var sumCenterX = 0;
+  var sumCenterY = 0;
+  for (var i = 0; i < nodes.length; i++) {
+    var lNode = nodes[i];
+
+    sumCenterX += lNode.getCenterX();
+    sumCenterY += lNode.getCenterY();
+  }
+
+  organization.centerX = sumCenterX / nodes.length;
+  organization.centerY = sumCenterY / nodes.length;
 
   // Create the organization -> tile members
   for (var i = 0; i < nodes.length; i++) {
@@ -1561,7 +1684,14 @@ CoSELayout.prototype.reduceTrees = function ()
     for (var i = 0; i < allNodes.length; i++) {
       node = allNodes[i];
       if(node.getEdges().length == 1 && !node.getEdges()[0].isInterGraph && node.getChild() == null){
-        prunedNodesInStepTemp.push([node, node.getEdges()[0], node.getOwner()]);
+        if(CoSEConstants.PURE_INCREMENTAL) {
+          var otherEnd = node.getEdges()[0].getOtherEnd(node);
+          var relativePosition = new DimensionD(node.getCenterX() - otherEnd.getCenterX(), node.getCenterY() - otherEnd.getCenterY());
+          prunedNodesInStepTemp.push([node, node.getEdges()[0], node.getOwner(), relativePosition]);
+        }
+        else {
+          prunedNodesInStepTemp.push([node, node.getEdges()[0], node.getOwner()]);
+        }
         containsLeaf = true;
       }  
     }
@@ -1614,141 +1744,147 @@ CoSELayout.prototype.findPlaceforPrunedNode = function(nodeData){
   else {
     nodeToConnect = nodeData[1].source;  
   }
-  var startGridX = nodeToConnect.startX;
-  var finishGridX = nodeToConnect.finishX;
-  var startGridY = nodeToConnect.startY;
-  var finishGridY = nodeToConnect.finishY; 
   
-  var upNodeCount = 0;
-  var downNodeCount = 0;
-  var rightNodeCount = 0;
-  var leftNodeCount = 0;
-  var controlRegions = [upNodeCount, rightNodeCount, downNodeCount, leftNodeCount]
-  
-  if(startGridY > 0){
-    for(var i = startGridX; i <= finishGridX; i++ ){
-      controlRegions[0] += (this.grid[i][startGridY - 1].length + this.grid[i][startGridY].length - 1);   
-    }
-  }
-  if(finishGridX < this.grid.length - 1){
-    for(var i = startGridY; i <= finishGridY; i++ ){
-      controlRegions[1] += (this.grid[finishGridX + 1][i].length + this.grid[finishGridX][i].length - 1);   
-    }
-  }
-  if(finishGridY < this.grid[0].length - 1){
-    for(var i = startGridX; i <= finishGridX; i++ ){
-      controlRegions[2] += (this.grid[i][finishGridY + 1].length + this.grid[i][finishGridY].length - 1);   
-    }
-  }
-  if(startGridX > 0){
-    for(var i = startGridY; i <= finishGridY; i++ ){
-      controlRegions[3] += (this.grid[startGridX - 1][i].length + this.grid[startGridX][i].length - 1);   
-    }
-  }
-  var min = Integer.MAX_VALUE;
-  var minCount;
-  var minIndex;
-  for(var j = 0; j < controlRegions.length; j++){
-    if(controlRegions[j] < min){
-      min = controlRegions[j];
-      minCount = 1;
-      minIndex = j;
-    }  
-    else if(controlRegions[j] == min){
-      minCount++;  
-    }
-  }
-  
-  if(minCount == 3 && min == 0){
-    if(controlRegions[0] == 0 && controlRegions[1] == 0 && controlRegions[2] == 0){
-      gridForPrunedNode = 1;    
-    }
-    else if(controlRegions[0] == 0 && controlRegions[1] == 0 && controlRegions[3] == 0){
-      gridForPrunedNode = 0;  
-    }
-    else if(controlRegions[0] == 0 && controlRegions[2] == 0 && controlRegions[3] == 0){
-      gridForPrunedNode = 3;  
-    }
-    else if(controlRegions[1] == 0 && controlRegions[2] == 0 && controlRegions[3] == 0){
-      gridForPrunedNode = 2;  
-    }
-  }
-  else if(minCount == 2 && min == 0){
-    var random = Math.floor(Math.random() * 2);
-    if(controlRegions[0] == 0 && controlRegions[1] == 0){;
-      if(random == 0){
-        gridForPrunedNode = 0;
-      }
-      else{
-        gridForPrunedNode = 1;
-      }
-    }
-    else if(controlRegions[0] == 0 && controlRegions[2] == 0){
-      if(random == 0){
-        gridForPrunedNode = 0;
-      }
-      else{
-        gridForPrunedNode = 2;
-      }
-    }
-    else if(controlRegions[0] == 0 && controlRegions[3] == 0){
-      if(random == 0){
-        gridForPrunedNode = 0;
-      }
-      else{
-        gridForPrunedNode = 3;
-      }
-    }
-    else if(controlRegions[1] == 0 && controlRegions[2] == 0){
-      if(random == 0){
-        gridForPrunedNode = 1;
-      }
-      else{
-        gridForPrunedNode = 2;
-      }
-    }
-    else if(controlRegions[1] == 0 && controlRegions[3] == 0){
-      if(random == 0){
-        gridForPrunedNode = 1;
-      }
-      else{
-        gridForPrunedNode = 3;
-      }
-    }
-    else {
-      if(random == 0){
-        gridForPrunedNode = 2;
-      }
-      else{
-        gridForPrunedNode = 3;
-      }
-    }
-  }
-  else if(minCount == 4 && min == 0){
-    var random = Math.floor(Math.random() * 4);
-    gridForPrunedNode = random;  
+  if(CoSEConstants.PURE_INCREMENTAL) {
+    prunedNode.setCenter(nodeToConnect.getCenterX() + nodeData[3].getWidth(),
+                         nodeToConnect.getCenterY() + nodeData[3].getHeight());
   }
   else {
-    gridForPrunedNode = minIndex;
+    var startGridX = nodeToConnect.startX;
+    var finishGridX = nodeToConnect.finishX;
+    var startGridY = nodeToConnect.startY;
+    var finishGridY = nodeToConnect.finishY; 
+
+    var upNodeCount = 0;
+    var downNodeCount = 0;
+    var rightNodeCount = 0;
+    var leftNodeCount = 0;
+    var controlRegions = [upNodeCount, rightNodeCount, downNodeCount, leftNodeCount]
+
+    if(startGridY > 0){
+      for(var i = startGridX; i <= finishGridX; i++ ){
+        controlRegions[0] += (this.grid[i][startGridY - 1].length + this.grid[i][startGridY].length - 1);   
+      }
+    }
+    if(finishGridX < this.grid.length - 1){
+      for(var i = startGridY; i <= finishGridY; i++ ){
+        controlRegions[1] += (this.grid[finishGridX + 1][i].length + this.grid[finishGridX][i].length - 1);   
+      }
+    }
+    if(finishGridY < this.grid[0].length - 1){
+      for(var i = startGridX; i <= finishGridX; i++ ){
+        controlRegions[2] += (this.grid[i][finishGridY + 1].length + this.grid[i][finishGridY].length - 1);   
+      }
+    }
+    if(startGridX > 0){
+      for(var i = startGridY; i <= finishGridY; i++ ){
+        controlRegions[3] += (this.grid[startGridX - 1][i].length + this.grid[startGridX][i].length - 1);   
+      }
+    }
+    var min = Integer.MAX_VALUE;
+    var minCount;
+    var minIndex;
+    for(var j = 0; j < controlRegions.length; j++){
+      if(controlRegions[j] < min){
+        min = controlRegions[j];
+        minCount = 1;
+        minIndex = j;
+      }  
+      else if(controlRegions[j] == min){
+        minCount++;  
+      }
+    }
+
+    if(minCount == 3 && min == 0){
+      if(controlRegions[0] == 0 && controlRegions[1] == 0 && controlRegions[2] == 0){
+        gridForPrunedNode = 1;    
+      }
+      else if(controlRegions[0] == 0 && controlRegions[1] == 0 && controlRegions[3] == 0){
+        gridForPrunedNode = 0;  
+      }
+      else if(controlRegions[0] == 0 && controlRegions[2] == 0 && controlRegions[3] == 0){
+        gridForPrunedNode = 3;  
+      }
+      else if(controlRegions[1] == 0 && controlRegions[2] == 0 && controlRegions[3] == 0){
+        gridForPrunedNode = 2;  
+      }
+    }
+    else if(minCount == 2 && min == 0){
+      var random = Math.floor(Math.random() * 2);
+      if(controlRegions[0] == 0 && controlRegions[1] == 0){;
+        if(random == 0){
+          gridForPrunedNode = 0;
+        }
+        else{
+          gridForPrunedNode = 1;
+        }
+      }
+      else if(controlRegions[0] == 0 && controlRegions[2] == 0){
+        if(random == 0){
+          gridForPrunedNode = 0;
+        }
+        else{
+          gridForPrunedNode = 2;
+        }
+      }
+      else if(controlRegions[0] == 0 && controlRegions[3] == 0){
+        if(random == 0){
+          gridForPrunedNode = 0;
+        }
+        else{
+          gridForPrunedNode = 3;
+        }
+      }
+      else if(controlRegions[1] == 0 && controlRegions[2] == 0){
+        if(random == 0){
+          gridForPrunedNode = 1;
+        }
+        else{
+          gridForPrunedNode = 2;
+        }
+      }
+      else if(controlRegions[1] == 0 && controlRegions[3] == 0){
+        if(random == 0){
+          gridForPrunedNode = 1;
+        }
+        else{
+          gridForPrunedNode = 3;
+        }
+      }
+      else {
+        if(random == 0){
+          gridForPrunedNode = 2;
+        }
+        else{
+          gridForPrunedNode = 3;
+        }
+      }
+    }
+    else if(minCount == 4 && min == 0){
+      var random = Math.floor(Math.random() * 4);
+      gridForPrunedNode = random;  
+    }
+    else {
+      gridForPrunedNode = minIndex;
+    }
+
+    if(gridForPrunedNode == 0) {
+      prunedNode.setCenter(nodeToConnect.getCenterX(),
+                           nodeToConnect.getCenterY() - nodeToConnect.getHeight()/2 - FDLayoutConstants.DEFAULT_EDGE_LENGTH - prunedNode.getHeight()/2);  
+    }
+    else if(gridForPrunedNode == 1) {
+      prunedNode.setCenter(nodeToConnect.getCenterX() + nodeToConnect.getWidth()/2 + FDLayoutConstants.DEFAULT_EDGE_LENGTH + prunedNode.getWidth()/2,
+                           nodeToConnect.getCenterY());  
+    }
+    else if(gridForPrunedNode == 2) {
+      prunedNode.setCenter(nodeToConnect.getCenterX(),
+                           nodeToConnect.getCenterY() + nodeToConnect.getHeight()/2 + FDLayoutConstants.DEFAULT_EDGE_LENGTH + prunedNode.getHeight()/2);  
+    }
+    else { 
+      prunedNode.setCenter(nodeToConnect.getCenterX() - nodeToConnect.getWidth()/2 - FDLayoutConstants.DEFAULT_EDGE_LENGTH - prunedNode.getWidth()/2,
+                           nodeToConnect.getCenterY());  
+    }
   }
-  
-  if(gridForPrunedNode == 0) {
-    prunedNode.setCenter(nodeToConnect.getCenterX(),
-                         nodeToConnect.getCenterY() - nodeToConnect.getHeight()/2 - FDLayoutConstants.DEFAULT_EDGE_LENGTH - prunedNode.getHeight()/2);  
-  }
-  else if(gridForPrunedNode == 1) {
-    prunedNode.setCenter(nodeToConnect.getCenterX() + nodeToConnect.getWidth()/2 + FDLayoutConstants.DEFAULT_EDGE_LENGTH + prunedNode.getWidth()/2,
-                         nodeToConnect.getCenterY());  
-  }
-  else if(gridForPrunedNode == 2) {
-    prunedNode.setCenter(nodeToConnect.getCenterX(),
-                         nodeToConnect.getCenterY() + nodeToConnect.getHeight()/2 + FDLayoutConstants.DEFAULT_EDGE_LENGTH + prunedNode.getHeight()/2);  
-  }
-  else { 
-    prunedNode.setCenter(nodeToConnect.getCenterX() - nodeToConnect.getWidth()/2 - FDLayoutConstants.DEFAULT_EDGE_LENGTH - prunedNode.getWidth()/2,
-                         nodeToConnect.getCenterY());  
-  }
-  
 };
 
 module.exports = CoSELayout;
