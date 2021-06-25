@@ -34,6 +34,6 @@
     "webpack-dev-server": "^3.11.2"
   },
   "dependencies": {
-    "layout-base": "git+https://github.com/iVis-at-Bilkent/layout-base.git#unstable"
+    "layout-base": "^2.0.0"
   }
 }
