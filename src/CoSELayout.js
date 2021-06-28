@@ -1432,7 +1432,7 @@ CoSELayout.prototype.tileNodes = function (nodes, minWidth) {
   var verticalRatio = this.getOrgRatio(verticalOrg);
   var bestOrg;
 
-  // the best ratio is the one that is closer to 1 since none of the is smaller than 1
+  // the best ratio is the one that is closer to 1 since the ratios are already normalized
   // and the best organization is the one that has the best ratio
   if (verticalRatio < horizontalRatio) {
     bestOrg = verticalOrg;
@@ -1443,6 +1443,7 @@ CoSELayout.prototype.tileNodes = function (nodes, minWidth) {
   return bestOrg;
 };
 
+// get the width/height ratio of the organization that is normalized so that it will not be less than 1
 CoSELayout.prototype.getOrgRatio = function (organization) {
   // get dimensions and calculate the initial ratio
   var width = organization.width;
