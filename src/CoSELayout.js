@@ -1519,6 +1519,12 @@ CoSELayout.prototype.calcIdealRowWidth = function (members, favorHorizontalDim) 
 
   if (favorHorizontalDim) {
     horizontalCount = Math.ceil(horizontalCountDouble);
+    // if horizontalCount count is not a float value then both of rounding to floor and ceil
+    // will yield the same values. Instead of repeating the same calculation try going up
+    // while favoring horizontal dimension in such cases
+    if ( horizontalCount == horizontalCountDouble ) {
+      horizontalCount++;
+    }
   } else {
     horizontalCount = Math.floor(horizontalCountDouble);
   }

@@ -1598,7 +1598,7 @@ CoSELayout.prototype.moveNodes = function () {
   var lNodes = this.getAllNodes();
   var node;
 
-  // calculate displacement for each node
+  // calculate displacement for each node 
   for (var i = 0; i < lNodes.length; i++) {
     node = lNodes[i];
     node.calculateDisplacement();
@@ -1790,7 +1790,7 @@ CoSELayout.prototype.initConstraintVariables = function () {
       var subGraphOnHorizontal = new Map(); // subgraph from vertical RP constraints
       var subGraphOnVertical = new Map(); // subgraph from vertical RP constraints
 
-      // construct subgraphs from relative placement constraints
+      // construct subgraphs from relative placement constraints 
       this.constraints.relativePlacementConstraint.forEach(function (constraint) {
         if (constraint.left) {
           var left = nodeToDummyForVerticalAlignment.has(constraint.left) ? nodeToDummyForVerticalAlignment.get(constraint.left) : constraint.left;
@@ -1821,7 +1821,7 @@ CoSELayout.prototype.initConstraintVariables = function () {
         }
       });
 
-      // function to construct components from a given graph
+      // function to construct components from a given graph 
       // also returns an array that keeps whether each component contains fixed node
       var constructComponents = function constructComponents(graph, fixedNodes) {
         var components = [];
@@ -2304,7 +2304,7 @@ CoSELayout.prototype.groupZeroDegreeMembers = function () {
   // array of [parent_id x oneDegreeNode_id]
   var tempMemberGroups = {}; // A temporary map of parent node and its zero degree members
   this.memberGroups = {}; // A map of dummy parent node and its zero degree members whose parents are not to be tiled
-  this.idToDummyNode = {}; // A map of id to dummy node
+  this.idToDummyNode = {}; // A map of id to dummy node 
 
   var zeroDegree = []; // List of zero degree nodes whose parents are not to be tiled
   var allNodes = this.graphManager.getAllNodes();
@@ -2741,6 +2741,12 @@ CoSELayout.prototype.calcIdealRowWidth = function (members, favorHorizontalDim) 
 
   if (favorHorizontalDim) {
     horizontalCount = Math.ceil(horizontalCountDouble);
+    // if horizontalCount count is not a float value then both of rounding to floor and ceil
+    // will yield the same values. Instead of repeating the same calculation try going up
+    // while favoring horizontal dimension in such cases
+    if (horizontalCount == horizontalCountDouble) {
+      horizontalCount++;
+    }
   } else {
     horizontalCount = Math.floor(horizontalCountDouble);
   }
@@ -3020,7 +3026,7 @@ CoSELayout.prototype.tilingPostLayout = function () {
 // -----------------------------------------------------------------------------
 // Section: Tree Reduction methods
 // -----------------------------------------------------------------------------
-// Reduce trees
+// Reduce trees 
 CoSELayout.prototype.reduceTrees = function () {
   var prunedNodesAll = [];
   var containsLeaf = true;
@@ -3060,7 +3066,7 @@ CoSELayout.prototype.reduceTrees = function () {
   this.prunedNodesAll = prunedNodesAll;
 };
 
-// Grow tree one step
+// Grow tree one step 
 CoSELayout.prototype.growTree = function (prunedNodesAll) {
   var lengthOfPrunedNodesInStep = prunedNodesAll.length;
   var prunedNodesInStep = prunedNodesAll[lengthOfPrunedNodesInStep - 1];
