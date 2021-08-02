@@ -1547,7 +1547,7 @@ CoSELayout.prototype.calcIdealRowWidth = function (members, favorHorizontalDim) 
 CoSELayout.prototype.tileNodesByFavoringDim = function (nodes, minWidth, favorHorizontalDim) {
   var verticalPadding = CoSEConstants.TILING_PADDING_VERTICAL;
   var horizontalPadding = CoSEConstants.TILING_PADDING_HORIZONTAL;
-  var tilingSortBy = CoSEConstants.TILING_SORT_BY;
+  var tilingCompareBy = CoSEConstants.TILING_COMPARE_BY;
   var organization = {
     rows: [],
     rowWidth: [],
@@ -1560,24 +1560,26 @@ CoSELayout.prototype.tileNodesByFavoringDim = function (nodes, minWidth, favorHo
     centerY: 0
   };
 
-  if (tilingSortBy) {
+  if (tilingCompareBy) {
     organization.idealRowWidth = this.calcIdealRowWidth(nodes, favorHorizontalDim);
   }
 
-  var getCompVal = function getCompVal(n) {
-    if (organization.idealRowWidth) {
-      return tilingSortBy(n.id);
-    }
+  var getNodeArea = function( n ) {
     return n.rect.width * n.rect.height;
   };
 
-  // Sort the nodes in ascending order of their areas
+  var areaCompareFcn = function(n1, n2){
+    return getNodeArea( n2 ) - getNodeArea( n1 );
+  };
+
+  // Sort the nodes in descending order of their areas
   nodes.sort(function (n1, n2) {
-    var n1CompVal = getCompVal(n1);
-    var n2CompVal = getCompVal(n2);
-    if (n1CompVal > n2CompVal) return 1;
-    if (n1CompVal < n2CompVal) return -1;
-    return 0;
+    var cmpBy = areaCompareFcn;
+    if ( organization.idealRowWidth ) {
+      cmpBy = tilingCompareBy;
+    }
+
+    return cmpBy( n1, n2 );
   });
 
   // Create the organization -> calculate compound center
