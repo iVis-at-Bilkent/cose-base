@@ -1577,8 +1577,9 @@ CoSELayout.prototype.tileNodesByFavoringDim = function (nodes, minWidth, favorHo
     var cmpBy = areaCompareFcn;
     if ( organization.idealRowWidth ) {
       cmpBy = tilingCompareBy;
+      return cmpBy( n1.id, n2.id );
     }
-    return cmpBy( n1.id, n2.id );
+    return cmpBy( n1, n2 );
   });
 
   // Create the organization -> calculate compound center
