@@ -7,7 +7,7 @@
 		exports["coseBase"] = factory(require("layout-base"));
 	else
 		root["coseBase"] = factory(root["layoutBase"]);
-})(this, function(__WEBPACK_EXTERNAL_MODULE__551__) {
+})(this, (__WEBPACK_EXTERNAL_MODULE__730__) => {
 return /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
@@ -19,7 +19,7 @@ return /******/ (() => { // webpackBootstrap
 
 var coseBase = {};
 
-coseBase.layoutBase = __webpack_require__(551);
+coseBase.layoutBase = __webpack_require__(730);
 coseBase.CoSEConstants = __webpack_require__(806);
 coseBase.CoSEEdge = __webpack_require__(767);
 coseBase.CoSEGraph = __webpack_require__(880);
@@ -37,7 +37,7 @@ module.exports = coseBase;
 
 
 
-var FDLayoutConstants = __webpack_require__(551).FDLayoutConstants;
+var FDLayoutConstants = (__webpack_require__(730).FDLayoutConstants);
 
 function CoSEConstants() {}
 
@@ -60,6 +60,8 @@ CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL = true; // this should be set to fal
 // This constant is for differentiating whether actual layout algorithm that uses cose-base wants to apply only incremental layout or 
 // an incremental layout on top of a randomized layout. If it is only incremental layout, then this constant should be true.
 CoSEConstants.PURE_INCREMENTAL = CoSEConstants.DEFAULT_INCREMENTAL;
+CoSEConstants.BOUNDARY_MAX_ITERATION = -1;
+// CoSEConstants.BOUNDARY_EXTRA_ITERATIONS = 2;
 
 module.exports = CoSEConstants;
 
@@ -70,7 +72,7 @@ module.exports = CoSEConstants;
 
 
 
-var FDLayoutEdge = __webpack_require__(551).FDLayoutEdge;
+var FDLayoutEdge = (__webpack_require__(730).FDLayoutEdge);
 
 function CoSEEdge(source, target, vEdge) {
   FDLayoutEdge.call(this, source, target, vEdge);
@@ -90,10 +92,11 @@ module.exports = CoSEEdge;
 
 
 
-var LGraph = __webpack_require__(551).LGraph;
+var LGraph = (__webpack_require__(730).LGraph);
 
 function CoSEGraph(parent, graphMgr, vGraph) {
   LGraph.call(this, parent, graphMgr, vGraph);
+  this.boundaryNodes = [];
 }
 
 CoSEGraph.prototype = Object.create(LGraph.prototype);
@@ -110,7 +113,7 @@ module.exports = CoSEGraph;
 
 
 
-var LGraphManager = __webpack_require__(551).LGraphManager;
+var LGraphManager = (__webpack_require__(730).LGraphManager);
 
 function CoSEGraphManager(layout) {
   LGraphManager.call(this, layout);
@@ -130,24 +133,25 @@ module.exports = CoSEGraphManager;
 
 
 
-var FDLayout = __webpack_require__(551).FDLayout;
+var FDLayout = (__webpack_require__(730).FDLayout);
 var CoSEGraphManager = __webpack_require__(578);
 var CoSEGraph = __webpack_require__(880);
 var CoSENode = __webpack_require__(991);
 var CoSEEdge = __webpack_require__(767);
 var CoSEConstants = __webpack_require__(806);
 var ConstraintHandler = __webpack_require__(902);
-var FDLayoutConstants = __webpack_require__(551).FDLayoutConstants;
-var LayoutConstants = __webpack_require__(551).LayoutConstants;
-var Point = __webpack_require__(551).Point;
-var PointD = __webpack_require__(551).PointD;
-var DimensionD = __webpack_require__(551).DimensionD;
-var Layout = __webpack_require__(551).Layout;
-var Integer = __webpack_require__(551).Integer;
-var IGeometry = __webpack_require__(551).IGeometry;
-var LGraph = __webpack_require__(551).LGraph;
-var Transform = __webpack_require__(551).Transform;
-var LinkedList = __webpack_require__(551).LinkedList;
+var IMath = (__webpack_require__(730).IMath);
+var FDLayoutConstants = (__webpack_require__(730).FDLayoutConstants);
+var LayoutConstants = (__webpack_require__(730).LayoutConstants);
+var Point = (__webpack_require__(730).Point);
+var PointD = (__webpack_require__(730).PointD);
+var DimensionD = (__webpack_require__(730).DimensionD);
+var Layout = (__webpack_require__(730).Layout);
+var Integer = (__webpack_require__(730).Integer);
+var IGeometry = (__webpack_require__(730).IGeometry);
+var LGraph = (__webpack_require__(730).LGraph);
+var Transform = (__webpack_require__(730).Transform);
+var LinkedList = (__webpack_require__(730).LinkedList);
 
 function CoSELayout() {
   FDLayout.call(this);
@@ -178,6 +182,463 @@ CoSELayout.prototype.newNode = function (vNode) {
 
 CoSELayout.prototype.newEdge = function (vEdge) {
   return new CoSEEdge(null, null, vEdge);
+};
+
+CoSELayout.prototype.updateGrid = function () {
+  var i;
+  var nodeA;
+  /*
+  var lNodes = this.getAllNodes().filter(function(n){
+    // NEW
+    //return !n.isHelper;   // or n.isHelper !== true
+    return !n.boundaryGraph;
+  });
+   */
+  var lNodes = this.getAllNodes();
+  this.grid = this.calcGrid(this.graphManager.getRoot());
+
+  // put all nodes to proper grid cells
+  for (i = 0; i < lNodes.length; i++) {
+    nodeA = lNodes[i];
+    this.addNodeToGrid(nodeA, this.graphManager.getRoot().getLeft(), this.graphManager.getRoot().getTop());
+  }
+};
+
+// NEW2
+// returns true if `node` is inside `boundaryNode`'s child graph (directly or nested)
+CoSELayout.prototype.isNodeInBoundary = function (node, boundaryNode) {
+
+  // if boundary node has a child graph, walk up node's owner graph chain
+  // until you either hit boundaryNode.getChild() or reach root
+  var boundaryGraph = boundaryNode.boundaryGraph;
+
+  if (!boundaryGraph) return false;
+
+  var g = node.getChild(); // node's owning graph
+
+  while (g) {
+    if (g === boundaryGraph) {
+      return true;
+    }
+    // go up: graph -> parent node -> owner graph ...
+    var parentNode = g.getParent(); // in cose-bilkent, this is usually the compound node
+    if (!parentNode) break;
+    g = parentNode.getOwner();
+  }
+
+  return false;
+};
+
+CoSELayout.prototype.shouldApplyRepulsion = function (nodeA, nodeB) {
+  // keep your existing "same owner" rule elsewhere if you want;
+  // this is only the boundary exception
+  if (nodeA.boundaryGraph && this.isNodeInBoundary(nodeB, nodeA)) return false;
+  if (nodeB.boundaryGraph && this.isNodeInBoundary(nodeA, nodeB)) return false;
+  return true;
+};
+
+// OVERRIDE
+CoSELayout.prototype.calcRepulsionForce = function (nodeA, nodeB) {
+
+  if (!this.shouldApplyRepulsion(nodeA, nodeB)) return;
+
+  var rectA = nodeA.getRect();
+  var rectB = nodeB.getRect();
+  var overlapAmount = new Array(2);
+  var clipPoints = new Array(4);
+  var distanceX;
+  var distanceY;
+  var distanceSquared;
+  var distance;
+  var repulsionForce;
+  var repulsionForceX;
+  var repulsionForceY;
+
+  if (rectA.intersects(rectB)) // two nodes overlap
+    {
+      // calculate separation amount in x and y directions
+      IGeometry.calcSeparationAmount(rectA, rectB, overlapAmount, FDLayoutConstants.DEFAULT_EDGE_LENGTH / 2.0);
+
+      repulsionForceX = 2 * overlapAmount[0];
+      repulsionForceY = 2 * overlapAmount[1];
+
+      var childrenConstant = nodeA.noOfChildren * nodeB.noOfChildren / (nodeA.noOfChildren + nodeB.noOfChildren);
+
+      // Apply forces on the two nodes
+      nodeA.repulsionForceX -= childrenConstant * repulsionForceX;
+      nodeA.repulsionForceY -= childrenConstant * repulsionForceY;
+      nodeB.repulsionForceX += childrenConstant * repulsionForceX;
+      nodeB.repulsionForceY += childrenConstant * repulsionForceY;
+    } else // no overlap
+    {
+      // calculate distance
+
+      if (this.uniformLeafNodeSizes && nodeA.getChild() == null && nodeB.getChild() == null) // simply base repulsion on distance of node centers
+        {
+          distanceX = rectB.getCenterX() - rectA.getCenterX();
+          distanceY = rectB.getCenterY() - rectA.getCenterY();
+        } else // use clipping points
+        {
+          IGeometry.getIntersection(rectA, rectB, clipPoints);
+
+          distanceX = clipPoints[2] - clipPoints[0];
+          distanceY = clipPoints[3] - clipPoints[1];
+        }
+
+      // No repulsion range. FR grid variant should take care of this.
+      if (Math.abs(distanceX) < FDLayoutConstants.MIN_REPULSION_DIST) {
+        distanceX = IMath.sign(distanceX) * FDLayoutConstants.MIN_REPULSION_DIST;
+      }
+
+      if (Math.abs(distanceY) < FDLayoutConstants.MIN_REPULSION_DIST) {
+        distanceY = IMath.sign(distanceY) * FDLayoutConstants.MIN_REPULSION_DIST;
+      }
+
+      distanceSquared = distanceX * distanceX + distanceY * distanceY;
+      distance = Math.sqrt(distanceSquared);
+
+      // Here we use half of the nodes' repulsion values for backward compatibility
+      repulsionForce = (nodeA.nodeRepulsion / 2 + nodeB.nodeRepulsion / 2) * nodeA.noOfChildren * nodeB.noOfChildren / distanceSquared;
+
+      // Project force onto x and y axes
+      repulsionForceX = repulsionForce * distanceX / distance;
+      repulsionForceY = repulsionForce * distanceY / distance;
+
+      // Apply forces on the two nodes
+      nodeA.repulsionForceX -= repulsionForceX;
+      nodeA.repulsionForceY -= repulsionForceY;
+      nodeB.repulsionForceX += repulsionForceX;
+      nodeB.repulsionForceY += repulsionForceY;
+    }
+};
+
+CoSELayout.prototype.moveBoundaryNodes = function () {
+  var allNodes = this.getAllNodes();
+  var boundaryInfo = [];
+
+  // Before updateBounds: read location() + compute T
+  for (var i = 0; i < allNodes.length; i++) {
+    var node = allNodes[i];
+    var graph = node.boundaryGraph;
+    if (!graph) continue;
+
+    //if (!node.location) continue;
+    var loc = node.location(); // e.g. "top", "bottom", "left", "right", "top-left", ...
+    //console.log("location: ", loc)
+    if (!loc) continue;
+
+    var left = graph.getLeft();
+    var right = graph.getRight();
+    var top = graph.getTop();
+    var bottom = graph.getBottom();
+    var w = right - left;
+    var h = bottom - top;
+
+    var cx = node.getCenterX();
+    var cy = node.getCenterY();
+
+    var side = null;
+    var corner = null;
+    var T = 0;
+
+    switch (loc) {
+      case "top-left":
+        corner = "top-left";
+        break;
+
+      case "top-right":
+        corner = "top-right";
+        break;
+
+      case "bottom-left":
+        corner = "bottom-left";
+        break;
+
+      case "bottom-right":
+        corner = "bottom-right";
+        break;
+
+      case "top":
+        side = "top";
+        T = (cx - left) / w;
+        break;
+
+      case "bottom":
+        side = "bottom";
+        T = (cx - left) / w;
+        break;
+
+      case "left":
+        side = "left";
+        T = (cy - top) / h;
+        break;
+
+      case "right":
+        side = "right";
+        T = (cy - top) / h;
+        break;
+
+      default:
+        continue;
+    }
+
+    if (!corner) {
+      if (T < 0) T = 0;else if (T > 1) T = 1;
+    }
+
+    boundaryInfo.push({
+      node: node,
+      graph: graph,
+      side: side,
+      corner: corner,
+      T: T
+    });
+  }
+
+  // ️Let layout update compound bounds
+  this.graphManager.updateBounds();
+
+  //  After updateBounds: snap to new bounds using saved side/corner/T
+  for (var i = 0; i < boundaryInfo.length; i++) {
+    var info = boundaryInfo[i];
+    var node = info.node;
+    var graph = info.graph;
+
+    var left = graph.getLeft();
+    var right = graph.getRight();
+    var top = graph.getTop();
+    var bottom = graph.getBottom();
+    var w = right - left;
+    var h = bottom - top;
+
+    var x, y;
+
+    if (info.corner) {
+      // corners ignore T; location fully determines position
+      switch (info.corner) {
+        case "top-left":
+          x = left;y = top;break;
+        case "top-right":
+          x = right;y = top;break;
+        case "bottom-left":
+          x = left;y = bottom;break;
+        case "bottom-right":
+          x = right;y = bottom;break;
+      }
+    } else {
+      switch (info.side) {
+        case "top":
+          x = left + info.T * w;
+          y = top;
+          break;
+        case "bottom":
+          x = left + info.T * w;
+          y = bottom;
+          break;
+        case "left":
+          x = left;
+          y = top + info.T * h;
+          break;
+        case "right":
+          x = right;
+          y = top + info.T * h;
+          break;
+        default:
+          continue;
+      }
+    }
+
+    node.setCenter(x, y);
+  }
+};
+
+CoSELayout.prototype.adjustBoundaryForces = function () {
+  var allNodes = this.getAllNodes();
+  for (var i = 0; i < allNodes.length; i++) {
+    var node = allNodes[i];
+    if (node.boundaryGraph) {
+      this.adjustBoundaryForce(node);
+    }
+  }
+};
+
+CoSELayout.prototype.adjustBoundaryForce = function (node) {
+  if (!node.boundaryGraph) return;
+
+  var boundaryParent = node.boundaryGraph.getParent();
+  if (!boundaryParent) return;
+
+  node.gravitationForceX = 0;
+  node.gravitationForceY = 0;
+
+  // 1) Accumulate boundary node forces into parent
+  boundaryParent.springForceX += node.springForceX;
+  boundaryParent.springForceY += node.springForceY;
+  boundaryParent.repulsionForceX += node.repulsionForceX;
+  boundaryParent.repulsionForceY += node.repulsionForceY;
+
+  var loc = node.location(); // 'top', 'bottom', 'left', 'right', 'top-left', ...
+  var last = node.last || 'none'; // 'top' | 'bottom' | 'left' | 'right' | 'none'
+  var it = node.iterationCountAtCorner || 0;
+  var maxIt = CoSEConstants.BOUNDARY_MAX_ITERATION;
+
+  // ---------- Edge behavior ----------
+  if (loc === 'top' || loc === 'bottom') {
+    node.clearForceY();
+    it = 0;
+    last = loc;
+  } else if (loc === 'left' || loc === 'right') {
+    node.clearForceX();
+    it = 0;
+    last = loc;
+  }
+
+  // ---------- Corner behavior ----------
+  var isCorner = loc === 'top-left' || loc === 'top-right' || loc === 'bottom-left' || loc === 'bottom-right';
+
+  if (isCorner) {
+    var res = this._handleCornerBoundary(node, loc, last, it, maxIt);
+    it = it + 1;
+    last = res.last;
+  }
+
+  node.last = last;
+  node.iterationCountAtCorner = it;
+};
+
+CoSELayout.prototype._handleCornerBoundary = function (node, loc, last, it, maxIt) {
+
+  function getFxFy() {
+    return {
+      fx: node.springForceX + node.repulsionForceX + node.gravitationForceX,
+      fy: node.springForceY + node.repulsionForceY + node.gravitationForceY
+    };
+  }
+
+  var cornerSides = function cornerSides(loc) {
+    switch (loc) {
+      case 'top-left':
+        return ['top', 'left'];
+      case 'top-right':
+        return ['top', 'right'];
+      case 'bottom-left':
+        return ['bottom', 'left'];
+      case 'bottom-right':
+        return ['bottom', 'right'];
+      default:
+        return [];
+    }
+  };
+  var sides = cornerSides(loc);
+
+  if (last !== sides[0] && last !== sides[1]) {
+    last = sides[0];
+    it = 0;
+  }
+
+  var f = getFxFy();
+  var fx = f.fx;
+  var fy = f.fy;
+
+  if (sides.includes('top') && fy < 0) {
+    node.clearForceY();
+  }
+  if (sides.includes('bottom') && fy > 0) {
+    node.clearForceY();
+  }
+  if (sides.includes('left') && fx < 0) {
+    node.clearForceX();
+  }
+  if (sides.includes('right') && fx > 0) {
+    node.clearForceX();
+  }
+
+  f = getFxFy();
+  fx = f.fx;
+  fy = f.fy;
+
+  var absX = Math.abs(fx);
+  var absY = Math.abs(fy);
+
+  // Helper: behavior when it >= maxIt
+  function afterMaxIt() {
+    if (absX > absY) {
+      node.clearForceY();
+    } else if (absY > absX) {
+      node.clearForceX();
+    } else {
+      node.clearForceX();
+      node.clearForceY();
+    }
+  }
+
+  if (last === 'top' || last === 'bottom') {
+    if (it < maxIt) {
+      node.clearForceY();
+    } else {
+      afterMaxIt();
+    }
+  } else {
+    if (it < maxIt) {
+      node.clearForceX();
+    } else {
+      afterMaxIt();
+    }
+  }
+
+  return { last: last };
+};
+
+// OVERRIDE
+CoSELayout.prototype.positionNodesRandomly = function (graph) {
+
+  if (graph == undefined) {
+    //assert !this.incremental;
+    this.positionNodesRandomly(this.getGraphManager().getRoot());
+    this.getGraphManager().getRoot().updateBounds(true);
+  } else {
+    var lNode;
+    var childGraph;
+
+    var nodes = graph.getNodes();
+    for (var i = 0; i < nodes.length; i++) {
+      lNode = nodes[i];
+      childGraph = lNode.getChild();
+
+      // NEW
+      //if (lNode.boundaryGraph || lNode.isHelper){
+      if (lNode.boundaryGraph) {
+        continue;
+      }
+      if (childGraph == null) {
+        lNode.scatter();
+      } else if (childGraph.getNodes().length == 0) {
+        lNode.scatter();
+      } else {
+        this.positionNodesRandomly(childGraph);
+        lNode.updateBounds();
+      }
+    }
+  }
+};
+
+CoSELayout.prototype.positionBoundaryNodes = function () {
+  var lNode;
+  var bGraph;
+
+  var nodes = this.graphManager.getAllNodes();
+  for (var i = 0; i < nodes.length; i++) {
+    lNode = nodes[i];
+
+    if (lNode.boundaryGraph) {
+      bGraph = lNode.boundaryGraph;
+      var left = bGraph.getLeft();
+      var right = bGraph.getRight();
+      var top = bGraph.getTop();
+      var bottom = bGraph.getBottom();
+      lNode.putRandomlyOnBoundary(left, right, top, bottom);
+    }
+  }
 };
 
 CoSELayout.prototype.initParameters = function () {
@@ -253,8 +714,10 @@ CoSELayout.prototype.classicLayout = function () {
           return allNodes.has(x);
         });
         this.graphManager.setAllNodesToApplyGravitation(intersection);
-
+        // CHANGED
         this.positionNodesRandomly();
+        this.graphManager.updateBounds();
+        this.positionBoundaryNodes();
       }
   } else {
     if (CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL) {
@@ -363,7 +826,10 @@ CoSELayout.prototype.tick = function () {
   this.calcSpringForces();
   this.calcRepulsionForces(gridUpdateAllowed, forceToNodeSurroundingUpdate);
   this.calcGravitationalForces();
+  // CHANGE
+  this.adjustBoundaryForces();
   this.moveNodes();
+  this.moveBoundaryNodes();
   this.animate();
 
   return false; // Layout is not ended yet return false
@@ -1126,7 +1592,7 @@ CoSELayout.prototype.groupZeroDegreeMembers = function () {
     var node = allNodes[i];
     var parent = node.getParent();
     // If a node has zero degree and its parent is not to be tiled if exists add that node to zeroDegres list
-    if (this.getNodeDegreeWithChildren(node) === 0 && (parent.id == undefined || !this.getToBeTiled(parent))) {
+    if (!node.boundaryGraph && this.getNodeDegreeWithChildren(node) === 0 && (parent.id == undefined || !this.getToBeTiled(parent))) {
       zeroDegree.push(node);
     }
   }
@@ -1853,7 +2319,10 @@ CoSELayout.prototype.reduceTrees = function () {
 
     for (var i = 0; i < allNodes.length; i++) {
       node = allNodes[i];
-      if (node.getEdges().length == 1 && !node.getEdges()[0].isInterGraph && node.getChild() == null) {
+      // NEW
+      //       if(node.getEdges().length == 1 && !node.getEdges()[0].isInterGraph && node.getChild() == null &&
+      //           node.boundaryGraph == null && !node.isHelper){
+      if (node.getEdges().length == 1 && !node.getEdges()[0].isInterGraph && node.getChild() == null && node.boundaryGraph == null) {
         if (CoSEConstants.PURE_INCREMENTAL) {
           var otherEnd = node.getEdges()[0].getOtherEnd(node);
           var relativePosition = new DimensionD(node.getCenterX() - otherEnd.getCenterX(), node.getCenterY() - otherEnd.getCenterY());
@@ -2037,17 +2506,93 @@ module.exports = CoSELayout;
 
 
 
-var FDLayoutNode = __webpack_require__(551).FDLayoutNode;
-var IMath = __webpack_require__(551).IMath;
+var FDLayoutNode = (__webpack_require__(730).FDLayoutNode);
+var IMath = (__webpack_require__(730).IMath);
+var RandomSeed = (__webpack_require__(730).RandomSeed);
 
 function CoSENode(gm, loc, size, vNode) {
   FDLayoutNode.call(this, gm, loc, size, vNode);
+  this.boundaryGraph = null;
+  this.last = null;
+  this.iterationCountAtCorner = 0;
 }
 
 CoSENode.prototype = Object.create(FDLayoutNode.prototype);
 for (var prop in FDLayoutNode) {
   CoSENode[prop] = FDLayoutNode[prop];
 }
+
+CoSENode.prototype.clearForceX = function () {
+  this.springForceX = 0;
+  this.repulsionForceX = 0;
+  this.gravitationForceX = 0;
+};
+
+CoSENode.prototype.clearForceY = function () {
+  this.springForceY = 0;
+  this.repulsionForceY = 0;
+  this.gravitationForceY = 0;
+};
+
+CoSENode.prototype.putRandomlyOnBoundary = function (minX, maxX, minY, maxY) {
+  var width = maxX - minX;
+  var height = maxY - minY;
+
+  var perimeter = 2 * (width + height);
+  var r = RandomSeed.nextDouble() * perimeter;
+
+  var x = void 0,
+      y = void 0;
+
+  if (r < width) {
+    x = minX + r;
+    y = minY;
+  } else if (r < width + height) {
+    x = maxX;
+    y = minY + (r - width);
+  } else if (r < 2 * width + height) {
+    x = maxX - (r - (width + height));
+    y = maxY;
+  } else {
+    x = minX;
+    y = maxY - (r - (2 * width + height));
+  }
+  this.setCenter(x, y);
+};
+
+CoSENode.prototype.location = function () {
+  var graph = this.boundaryGraph;
+  if (!graph) return 'none';
+
+  var x = this.getCenterX();
+  var y = this.getCenterY();
+
+  var left = graph.getLeft();
+  var right = graph.getRight();
+  var top = graph.getTop();
+  var bottom = graph.getBottom();
+
+  // Use epsilon tolerance for floating-point comparisons
+  var EPS = 1e-9;
+  var onLeft = Math.abs(x - left) < EPS;
+  var onRight = Math.abs(x - right) < EPS;
+  var onTop = Math.abs(y - top) < EPS;
+  var onBottom = Math.abs(y - bottom) < EPS;
+
+  // Corners
+  if (onTop && onLeft) return 'top-left';
+  if (onTop && onRight) return 'top-right';
+  if (onBottom && onLeft) return 'bottom-left';
+  if (onBottom && onRight) return 'bottom-right';
+
+  // Edges
+  if (onTop) return 'top';
+  if (onBottom) return 'bottom';
+  if (onLeft) return 'left';
+  if (onRight) return 'right';
+
+  return 'none';
+};
 
 CoSENode.prototype.calculateDisplacement = function () {
   var layout = this.graphManager.getLayout();
@@ -2068,6 +2613,58 @@ CoSENode.prototype.calculateDisplacement = function () {
     this.displacementY = layout.coolingFactor * layout.maxNodeDisplacement * IMath.sign(this.displacementY);
   }
 
+  if (this.boundaryGraph) {
+    var graph = this.boundaryGraph;
+
+    var left = graph.getLeft();
+    var right = graph.getRight();
+    var top = graph.getTop();
+    var bottom = graph.getBottom();
+
+    var x = this.getCenterX();
+    var y = this.getCenterY();
+
+    var targetX = x + this.displacementX;
+    var targetY = y + this.displacementY;
+
+    var newX = targetX;
+    var newY = targetY;
+
+    // Clamp X to boundary
+    if (targetX > right) {
+      newX = right;
+    } else if (targetX < left) {
+      newX = left;
+    }
+    // Clamp Y to boundary
+    if (targetY > bottom) {
+      newY = bottom;
+    } else if (targetY < top) {
+      newY = top;
+    }
+
+    // Snap to nearest edge if node drifted inside the boundary
+    var distToLeft = Math.abs(newX - left);
+    var distToRight = Math.abs(newX - right);
+    var distToTop = Math.abs(newY - top);
+    var distToBottom = Math.abs(newY - bottom);
+
+    var minDistX = Math.min(distToLeft, distToRight);
+    var minDistY = Math.min(distToTop, distToBottom);
+
+    // If not already on an edge, snap to the nearest one
+    if (minDistX > 0 && minDistY > 0) {
+      if (minDistX <= minDistY) {
+        newX = distToLeft < distToRight ? left : right;
+      } else {
+        newY = distToTop < distToBottom ? top : bottom;
+      }
+    }
+
+    this.displacementX = newX - x;
+    this.displacementY = newY - y;
+  }
+
   // non-empty compound node, propogate movement to children as well
   if (this.child && this.child.getNodes().length > 0) {
     this.propogateDisplacementToChildren(this.displacementX, this.displacementY);
@@ -2075,10 +2672,14 @@ CoSENode.prototype.calculateDisplacement = function () {
 };
 
 CoSENode.prototype.propogateDisplacementToChildren = function (dX, dY) {
-  var nodes = this.getChild().getNodes();
+  var nodes = this.child.getNodes();
+
   var node;
   for (var i = 0; i < nodes.length; i++) {
     node = nodes[i];
+    if (node.boundaryGraph) {
+      continue;
+    }
     if (node.getChild() == null) {
       node.displacementX += dX;
       node.displacementY += dY;
@@ -2148,9 +2749,9 @@ module.exports = CoSENode;
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 var CoSEConstants = __webpack_require__(806);
-var LinkedList = __webpack_require__(551).LinkedList;
-var Matrix = __webpack_require__(551).Matrix;
-var SVD = __webpack_require__(551).SVD;
+var LinkedList = (__webpack_require__(730).LinkedList);
+var Matrix = (__webpack_require__(730).Matrix);
+var SVD = (__webpack_require__(730).SVD);
 
 function ConstraintHandler() {}
 
@@ -3168,10 +3769,10 @@ module.exports = ConstraintHandler;
 
 /***/ }),
 
-/***/ 551:
+/***/ 730:
 /***/ ((module) => {
 
-module.exports = __WEBPACK_EXTERNAL_MODULE__551__;
+module.exports = __WEBPACK_EXTERNAL_MODULE__730__;
 
 /***/ })
 

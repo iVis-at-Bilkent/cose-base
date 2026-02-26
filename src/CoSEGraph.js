@@ -2,6 +2,7 @@ var LGraph = require('layout-base').LGraph;
 
 function CoSEGraph(parent, graphMgr, vGraph) {
   LGraph.call(this, parent, graphMgr, vGraph);
+  this.boundaryNodes = []
 }
 
 CoSEGraph.prototype = Object.create(LGraph.prototype);

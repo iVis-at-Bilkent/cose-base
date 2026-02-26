@@ -22,5 +22,7 @@ CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL = true;  // this should be set to fa
 // This constant is for differentiating whether actual layout algorithm that uses cose-base wants to apply only incremental layout or 
 // an incremental layout on top of a randomized layout. If it is only incremental layout, then this constant should be true.
 CoSEConstants.PURE_INCREMENTAL = CoSEConstants.DEFAULT_INCREMENTAL;
+CoSEConstants.BOUNDARY_MAX_ITERATION = -1;
+// CoSEConstants.BOUNDARY_EXTRA_ITERATIONS = 2;
 
 module.exports = CoSEConstants;
