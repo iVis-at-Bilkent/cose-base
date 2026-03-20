@@ -812,6 +812,54 @@ CoSELayout.prototype.moveNodes = function () {
   }  
 };
 
+// OVERRIDE
+CoSELayout.prototype.calcIdealEdgeLengths = function () {
+  var edge;
+  var originalIdealLength;
+  var lcaDepth;
+  var source;
+  var target;
+  var sizeOfSourceInLca;
+  var sizeOfTargetInLca;
+
+  var allEdges = this.getGraphManager().getAllEdges();
+  for (var i = 0; i < allEdges.length; i++) {
+    edge = allEdges[i];
+
+    originalIdealLength = edge.idealLength;
+
+    if (edge.isInterGraph) {
+      source = edge.getSource();
+      target = edge.getTarget();
+
+      sizeOfSourceInLca = edge.getSourceInLca().getEstimatedSize();
+      sizeOfTargetInLca = edge.getTargetInLca().getEstimatedSize();
+
+      if (this.useSmartIdealEdgeLengthCalculation) {
+        edge.idealLength += sizeOfSourceInLca + sizeOfTargetInLca -
+            2 * LayoutConstants.SIMPLE_NODE_SIZE;
+      }
+
+      lcaDepth = edge.getLca().getInclusionTreeDepth();
+
+      // For boundary nodes, add 1 to depth
+      var sourceDepth = source.getInclusionTreeDepth();
+      var targetDepth = target.getInclusionTreeDepth();
+
+      if (source.boundaryGraph) {
+        sourceDepth = source.boundaryGraph.getParent().getInclusionTreeDepth() + 1;
+      }
+      if (target.boundaryGraph) {
+        targetDepth = target.boundaryGraph.getParent().getInclusionTreeDepth() + 1;
+      }
+
+      edge.idealLength += originalIdealLength *
+          FDLayoutConstants.PER_LEVEL_IDEAL_EDGE_LENGTH_FACTOR * (sourceDepth + targetDepth - 2 * lcaDepth);
+    }
+  }
+};
+
+
 // constraint related methods: initConstraintVariables and updateDisplacements
 
 // initialize constraint related variables
