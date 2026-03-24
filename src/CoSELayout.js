@@ -1692,6 +1692,7 @@ CoSELayout.prototype.clearCompounds = function () {
     this.compoundOrder[i].child = null;
   }
   
+  this.childGraphMap = childGraphMap;
   this.graphManager.resetAllNodes();
   
   // Tile the removed children
@@ -1769,6 +1770,11 @@ CoSELayout.prototype.repopulateCompounds = function () {
     var labelMarginTop = lCompoundNode.labelMarginTop;
 
     this.adjustLocations(this.tiledMemberPack[id], lCompoundNode.rect.x, lCompoundNode.rect.y, horizontalMargin, verticalMargin, labelMarginLeft, labelMarginTop);
+
+    let newGraph = this.graphManager.add(this.newGraph(), lCompoundNode);
+    this.childGraphMap[lCompoundNode.id].forEach(node => {
+      newGraph.add(node);
+    });
   }
 };
 

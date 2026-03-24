@@ -12,8 +12,8 @@ return /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 24:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 24
+(module, __unused_webpack_exports, __webpack_require__) {
 
 
 
@@ -30,17 +30,106 @@ coseBase.ConstraintHandler = __webpack_require__(756);
 
 module.exports = coseBase;
 
-/***/ }),
+/***/ },
 
-/***/ 57:
-/***/ ((module) => {
+/***/ 670
+(module, __unused_webpack_exports, __webpack_require__) {
 
-module.exports = __WEBPACK_EXTERNAL_MODULE__57__;
 
-/***/ }),
 
-/***/ 201:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+var FDLayoutConstants = (__webpack_require__(57).FDLayoutConstants);
+
+function CoSEConstants() {}
+
+//CoSEConstants inherits static props in FDLayoutConstants
+for (var prop in FDLayoutConstants) {
+  CoSEConstants[prop] = FDLayoutConstants[prop];
+}
+
+CoSEConstants.DEFAULT_USE_MULTI_LEVEL_SCALING = false;
+CoSEConstants.DEFAULT_RADIAL_SEPARATION = FDLayoutConstants.DEFAULT_EDGE_LENGTH;
+CoSEConstants.DEFAULT_COMPONENT_SEPERATION = 60;
+CoSEConstants.TILE = true;
+CoSEConstants.TILING_PADDING_VERTICAL = 10;
+CoSEConstants.TILING_PADDING_HORIZONTAL = 10;
+CoSEConstants.TRANSFORM_ON_CONSTRAINT_HANDLING = true;
+CoSEConstants.ENFORCE_CONSTRAINTS = true;
+CoSEConstants.APPLY_LAYOUT = true;
+CoSEConstants.RELAX_MOVEMENT_ON_CONSTRAINTS = true;
+CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL = true; // this should be set to false if there will be a constraint
+// This constant is for differentiating whether actual layout algorithm that uses cose-base wants to apply only incremental layout or 
+// an incremental layout on top of a randomized layout. If it is only incremental layout, then this constant should be true.
+CoSEConstants.PURE_INCREMENTAL = CoSEConstants.DEFAULT_INCREMENTAL;
+CoSEConstants.BOUNDARY_MAX_ITERATION = -1;
+// CoSEConstants.BOUNDARY_EXTRA_ITERATIONS = 2;
+
+module.exports = CoSEConstants;
+
+/***/ },
+
+/***/ 246
+(module, __unused_webpack_exports, __webpack_require__) {
+
+
+
+var FDLayoutEdge = (__webpack_require__(57).FDLayoutEdge);
+
+function CoSEEdge(source, target, vEdge) {
+  FDLayoutEdge.call(this, source, target, vEdge);
+}
+
+CoSEEdge.prototype = Object.create(FDLayoutEdge.prototype);
+for (var prop in FDLayoutEdge) {
+  CoSEEdge[prop] = FDLayoutEdge[prop];
+}
+
+module.exports = CoSEEdge;
+
+/***/ },
+
+/***/ 435
+(module, __unused_webpack_exports, __webpack_require__) {
+
+
+
+var LGraph = (__webpack_require__(57).LGraph);
+
+function CoSEGraph(parent, graphMgr, vGraph) {
+  LGraph.call(this, parent, graphMgr, vGraph);
+  this.boundaryNodes = [];
+}
+
+CoSEGraph.prototype = Object.create(LGraph.prototype);
+for (var prop in LGraph) {
+  CoSEGraph[prop] = LGraph[prop];
+}
+
+module.exports = CoSEGraph;
+
+/***/ },
+
+/***/ 504
+(module, __unused_webpack_exports, __webpack_require__) {
+
+
+
+var LGraphManager = (__webpack_require__(57).LGraphManager);
+
+function CoSEGraphManager(layout) {
+  LGraphManager.call(this, layout);
+}
+
+CoSEGraphManager.prototype = Object.create(LGraphManager.prototype);
+for (var prop in LGraphManager) {
+  CoSEGraphManager[prop] = LGraphManager[prop];
+}
+
+module.exports = CoSEGraphManager;
+
+/***/ },
+
+/***/ 201
+(module, __unused_webpack_exports, __webpack_require__) {
 
 
 
@@ -1615,6 +1704,7 @@ CoSELayout.prototype.clearCompounds = function () {
     this.compoundOrder[i].child = null;
   }
 
+  this.childGraphMap = childGraphMap;
   this.graphManager.resetAllNodes();
 
   // Tile the removed children
@@ -1679,15 +1769,34 @@ CoSELayout.prototype.clearZeroDegreeMembers = function () {
 };
 
 CoSELayout.prototype.repopulateCompounds = function () {
-  for (var i = this.compoundOrder.length - 1; i >= 0; i--) {
-    var lCompoundNode = this.compoundOrder[i];
-    var id = lCompoundNode.id;
-    var horizontalMargin = lCompoundNode.paddingLeft;
-    var verticalMargin = lCompoundNode.paddingTop;
-    var labelMarginLeft = lCompoundNode.labelMarginLeft;
-    var labelMarginTop = lCompoundNode.labelMarginTop;
+  var _this = this;
 
-    this.adjustLocations(this.tiledMemberPack[id], lCompoundNode.rect.x, lCompoundNode.rect.y, horizontalMargin, verticalMargin, labelMarginLeft, labelMarginTop);
+  var _loop = function _loop() {
+    lCompoundNode = _this.compoundOrder[i];
+    id = lCompoundNode.id;
+    horizontalMargin = lCompoundNode.paddingLeft;
+    verticalMargin = lCompoundNode.paddingTop;
+    labelMarginLeft = lCompoundNode.labelMarginLeft;
+    labelMarginTop = lCompoundNode.labelMarginTop;
+
+
+    _this.adjustLocations(_this.tiledMemberPack[id], lCompoundNode.rect.x, lCompoundNode.rect.y, horizontalMargin, verticalMargin, labelMarginLeft, labelMarginTop);
+
+    var newGraph = _this.graphManager.add(_this.newGraph(), lCompoundNode);
+    _this.childGraphMap[lCompoundNode.id].forEach(function (node) {
+      newGraph.add(node);
+    });
+  };
+
+  for (var i = this.compoundOrder.length - 1; i >= 0; i--) {
+    var lCompoundNode;
+    var id;
+    var horizontalMargin;
+    var verticalMargin;
+    var labelMarginLeft;
+    var labelMarginTop;
+
+    _loop();
   }
 };
 
@@ -2455,10 +2564,10 @@ CoSELayout.prototype.findPlaceforPrunedNode = function (nodeData) {
 
 module.exports = CoSELayout;
 
-/***/ }),
+/***/ },
 
-/***/ 243:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 243
+(module, __unused_webpack_exports, __webpack_require__) {
 
 
 
@@ -2695,106 +2804,10 @@ CoSENode.prototype.isProcessed = function () {
 
 module.exports = CoSENode;
 
-/***/ }),
+/***/ },
 
-/***/ 246:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-
-
-var FDLayoutEdge = (__webpack_require__(57).FDLayoutEdge);
-
-function CoSEEdge(source, target, vEdge) {
-  FDLayoutEdge.call(this, source, target, vEdge);
-}
-
-CoSEEdge.prototype = Object.create(FDLayoutEdge.prototype);
-for (var prop in FDLayoutEdge) {
-  CoSEEdge[prop] = FDLayoutEdge[prop];
-}
-
-module.exports = CoSEEdge;
-
-/***/ }),
-
-/***/ 435:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-
-
-var LGraph = (__webpack_require__(57).LGraph);
-
-function CoSEGraph(parent, graphMgr, vGraph) {
-  LGraph.call(this, parent, graphMgr, vGraph);
-  this.boundaryNodes = [];
-}
-
-CoSEGraph.prototype = Object.create(LGraph.prototype);
-for (var prop in LGraph) {
-  CoSEGraph[prop] = LGraph[prop];
-}
-
-module.exports = CoSEGraph;
-
-/***/ }),
-
-/***/ 504:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-
-
-var LGraphManager = (__webpack_require__(57).LGraphManager);
-
-function CoSEGraphManager(layout) {
-  LGraphManager.call(this, layout);
-}
-
-CoSEGraphManager.prototype = Object.create(LGraphManager.prototype);
-for (var prop in LGraphManager) {
-  CoSEGraphManager[prop] = LGraphManager[prop];
-}
-
-module.exports = CoSEGraphManager;
-
-/***/ }),
-
-/***/ 670:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-
-
-var FDLayoutConstants = (__webpack_require__(57).FDLayoutConstants);
-
-function CoSEConstants() {}
-
-//CoSEConstants inherits static props in FDLayoutConstants
-for (var prop in FDLayoutConstants) {
-  CoSEConstants[prop] = FDLayoutConstants[prop];
-}
-
-CoSEConstants.DEFAULT_USE_MULTI_LEVEL_SCALING = false;
-CoSEConstants.DEFAULT_RADIAL_SEPARATION = FDLayoutConstants.DEFAULT_EDGE_LENGTH;
-CoSEConstants.DEFAULT_COMPONENT_SEPERATION = 60;
-CoSEConstants.TILE = true;
-CoSEConstants.TILING_PADDING_VERTICAL = 10;
-CoSEConstants.TILING_PADDING_HORIZONTAL = 10;
-CoSEConstants.TRANSFORM_ON_CONSTRAINT_HANDLING = true;
-CoSEConstants.ENFORCE_CONSTRAINTS = true;
-CoSEConstants.APPLY_LAYOUT = true;
-CoSEConstants.RELAX_MOVEMENT_ON_CONSTRAINTS = true;
-CoSEConstants.TREE_REDUCTION_ON_INCREMENTAL = true; // this should be set to false if there will be a constraint
-// This constant is for differentiating whether actual layout algorithm that uses cose-base wants to apply only incremental layout or 
-// an incremental layout on top of a randomized layout. If it is only incremental layout, then this constant should be true.
-CoSEConstants.PURE_INCREMENTAL = CoSEConstants.DEFAULT_INCREMENTAL;
-CoSEConstants.BOUNDARY_MAX_ITERATION = -1;
-// CoSEConstants.BOUNDARY_EXTRA_ITERATIONS = 2;
-
-module.exports = CoSEConstants;
-
-/***/ }),
-
-/***/ 756:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 756
+(module, __unused_webpack_exports, __webpack_require__) {
 
 
 
@@ -3819,7 +3832,14 @@ ConstraintHandler.handleConstraints = function (layout) {
 
 module.exports = ConstraintHandler;
 
-/***/ })
+/***/ },
+
+/***/ 57
+(module) {
+
+module.exports = __WEBPACK_EXTERNAL_MODULE__57__;
+
+/***/ }
 
 /******/ 	});
 /************************************************************************/
