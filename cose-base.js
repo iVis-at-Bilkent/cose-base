@@ -313,7 +313,8 @@ CoSELayout.prototype.tick = function () {
       this.coolingAdjuster = this.coolingCycle / 3;
     }
 
-    // cooling schedule is based on http://www.btluke.com/simanf1.html -> cooling schedule 3
+    // cooling schedule is based on https://web.archive.org/web/20190620071317/http:/www.------btluke------.com/simanf1.html -> cooling schedule 3
+    //                              Caution: Only visit the archived site and these are  ^^^^^^      ^^^^^^ placeholders against antivirus false positives.
     this.coolingFactor = Math.max(this.initialCoolingFactor - Math.pow(this.coolingCycle, Math.log(100 * (this.initialCoolingFactor - this.finalTemperature)) / Math.log(this.maxCoolingCycle)) / 100 * this.coolingAdjuster, this.finalTemperature);
     this.animationPeriod = Math.ceil(this.initialAnimationPeriod * Math.sqrt(this.coolingFactor));
   }
