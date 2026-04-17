@@ -5,6 +5,7 @@ var RandomSeed = require('layout-base').RandomSeed;
 function CoSENode(gm, loc, size, vNode) {
   FDLayoutNode.call(this, gm, loc, size, vNode);
   this.boundaryGraph = null;
+  this.fixedPosition = null;
   this.last = null;
   this.iterationCountAtCorner = 0;
 }
@@ -51,6 +52,54 @@ CoSENode.prototype.putRandomlyOnBoundary = function (minX, maxX, minY, maxY) {
   this.setCenter(x, y);
 };
 
+CoSENode.prototype.putFixedPositionOnBoundary = function (minX, maxX, minY, maxY) {
+  const width = maxX - minX;
+  const height = maxY - minY;
+  const location = this.fixedPosition.location ? this.fixedPosition.location : 'top';
+  const T = this.fixedPosition.T ? this.fixedPosition.T : 0.5;
+
+  let x, y;
+
+  switch (location) {
+    case 'top':
+      x = minX + (width * T);
+      y = minY;
+      break;
+    case 'bottom':
+      x = minX + (width * T);
+      y = maxY;
+      break;
+    case 'left':
+      x = minX;
+      y = minY + (height * T);
+      break;
+    case 'right':
+      x = maxX;
+      y = minY + (height * T);
+      break;
+    case 'top-left':
+      x = minX;
+      y = minY;
+      break;
+    case 'top-right':
+      x = maxX;
+      y = minY;
+      break;
+    case 'bottom-left':
+      x = minX;
+      y = maxY;
+      break;
+    case 'bottom-right':
+      x = maxX;
+      y = maxY;
+      break;
+    default:
+      x = minX + (width * T);
+      y = minY;
+  }
+
+  this.setCenter(x, y);
+};
 
 CoSENode.prototype.location = function () {
   const graph = this.boundaryGraph;
@@ -88,31 +137,35 @@ CoSENode.prototype.location = function () {
 
 
 CoSENode.prototype.calculateDisplacement = function () {
-  var layout = this.graphManager.getLayout();
-  // this check is for compound nodes that contain fixed nodes
-  if (this.getChild() != null && this.fixedNodeWeight) {
-    this.displacementX += layout.coolingFactor *
-      (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.fixedNodeWeight;
-    this.displacementY += layout.coolingFactor *
-      (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.fixedNodeWeight;
-  }
-  else {
-    this.displacementX += layout.coolingFactor *
-      (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.noOfChildren;
-    this.displacementY += layout.coolingFactor *
-      (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.noOfChildren;
-  }
+  if (this.boundaryGraph && this.fixedPosition) {
+    this.displacementX = 0;
+    this.displacementY = 0;
+  } else {
+    var layout = this.graphManager.getLayout();
+    // this check is for compound nodes that contain fixed nodes
+    if (this.getChild() != null && this.fixedNodeWeight) {
+      this.displacementX += layout.coolingFactor *
+        (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.fixedNodeWeight;
+      this.displacementY += layout.coolingFactor *
+        (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.fixedNodeWeight;
+    }
+    else {
+      this.displacementX += layout.coolingFactor *
+        (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.noOfChildren;
+      this.displacementY += layout.coolingFactor *
+        (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.noOfChildren;
+    }
 
-  if (Math.abs(this.displacementX) > layout.coolingFactor * layout.maxNodeDisplacement) {
-    this.displacementX = layout.coolingFactor * layout.maxNodeDisplacement *
-      IMath.sign(this.displacementX);
-  }
+    if (Math.abs(this.displacementX) > layout.coolingFactor * layout.maxNodeDisplacement) {
+      this.displacementX = layout.coolingFactor * layout.maxNodeDisplacement *
+        IMath.sign(this.displacementX);
+    }
 
-  if (Math.abs(this.displacementY) > layout.coolingFactor * layout.maxNodeDisplacement) {
-    this.displacementY = layout.coolingFactor * layout.maxNodeDisplacement *
-      IMath.sign(this.displacementY);
+    if (Math.abs(this.displacementY) > layout.coolingFactor * layout.maxNodeDisplacement) {
+      this.displacementY = layout.coolingFactor * layout.maxNodeDisplacement *
+        IMath.sign(this.displacementY);
+    }
   }
-
 
   if (this.boundaryGraph) {
     const graph = this.boundaryGraph;

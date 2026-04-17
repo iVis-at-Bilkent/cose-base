@@ -102,6 +102,7 @@ CoSELayout.prototype.shouldApplyRepulsion = function(nodeA, nodeB) {
   // this is only the boundary exception
   if (nodeA.boundaryGraph && this.isNodeInBoundary(nodeB, nodeA)) return false;
   if (nodeB.boundaryGraph && this.isNodeInBoundary(nodeA, nodeB)) return false;
+  if (nodeA.fixedPosition && nodeB.fixedPosition) return false;
   return true;
 };
 
@@ -137,10 +138,18 @@ CoSELayout.prototype.calcRepulsionForce = function (nodeA, nodeB) {
     var childrenConstant = nodeA.noOfChildren * nodeB.noOfChildren / (nodeA.noOfChildren + nodeB.noOfChildren);
 
     // Apply forces on the two nodes
-    nodeA.repulsionForceX -= childrenConstant * repulsionForceX;
-    nodeA.repulsionForceY -= childrenConstant * repulsionForceY;
-    nodeB.repulsionForceX += childrenConstant * repulsionForceX;
-    nodeB.repulsionForceY += childrenConstant * repulsionForceY;
+    if (nodeA.fixedPosition && !nodeB.fixedPosition) {
+      nodeB.repulsionForceX += 2 * childrenConstant * repulsionForceX;
+      nodeB.repulsionForceY += 2 * childrenConstant * repulsionForceY;
+    } else if (nodeB.fixedPosition && !nodeA.fixedPosition) {
+      nodeA.repulsionForceX += 2 * childrenConstant * repulsionForceX;
+      nodeA.repulsionForceY += 2 * childrenConstant * repulsionForceY;
+    } else {
+      nodeA.repulsionForceX -= childrenConstant * repulsionForceX;
+      nodeA.repulsionForceY -= childrenConstant * repulsionForceY;
+      nodeB.repulsionForceX += childrenConstant * repulsionForceX;
+      nodeB.repulsionForceY += childrenConstant * repulsionForceY;
+    }
   }
   else// no overlap
   {
@@ -203,11 +212,6 @@ CoSELayout.prototype.moveBoundaryNodes = function () {
     var graph = node.boundaryGraph;
     if (!graph) continue;
 
-    //if (!node.location) continue;
-    var loc = node.location(); // e.g. "top", "bottom", "left", "right", "top-left", ...
-    //console.log("location: ", loc)
-    if (!loc) continue;
-
     var left = graph.getLeft();
     var right = graph.getRight();
     var top = graph.getTop();
@@ -222,45 +226,57 @@ CoSELayout.prototype.moveBoundaryNodes = function () {
     var corner = null;
     var T = 0;
 
-    switch (loc) {
-      case "top-left":
-        corner = "top-left";
-        break;
+    if (node.fixedPosition) {
+      side = node.fixedPosition.location;
+      T = node.fixedPosition.T !== undefined ? node.fixedPosition.T : 0.5;
+      if (side && side.indexOf('-') !== -1) {
+        corner = side;
+      }
+    } else {
 
-      case "top-right":
-        corner = "top-right";
-        break;
+      var loc = node.location(); // e.g. "top", "bottom", "left", "right", "top-left", ...
+      if (!loc) continue;
 
-      case "bottom-left":
-        corner = "bottom-left";
-        break;
+      switch (loc) {
+        case "top-left":
+          corner = "top-left";
+          break;
 
-      case "bottom-right":
-        corner = "bottom-right";
-        break;
+        case "top-right":
+          corner = "top-right";
+          break;
 
-      case "top":
-        side = "top";
-        T = (cx - left) / w;
-        break;
+        case "bottom-left":
+          corner = "bottom-left";
+          break;
 
-      case "bottom":
-        side = "bottom";
-        T = (cx - left) / w;
-        break;
+        case "bottom-right":
+          corner = "bottom-right";
+          break;
 
-      case "left":
-        side = "left";
-        T = (cy - top) / h;
-        break;
+        case "top":
+          side = "top";
+          T = (cx - left) / w;
+          break;
 
-      case "right":
-        side = "right";
-        T = (cy - top) / h;
-        break;
+        case "bottom":
+          side = "bottom";
+          T = (cx - left) / w;
+          break;
 
-      default:
-        continue;
+        case "left":
+          side = "left";
+          T = (cy - top) / h;
+          break;
+
+        case "right":
+          side = "right";
+          T = (cy - top) / h;
+          break;
+
+        default:
+          continue;
+      }
     }
 
     if (!corner) {
@@ -377,6 +393,8 @@ CoSELayout.prototype.adjustBoundaryForce = function (node) {
     it   = 0;
     last = loc;
   }
+
+  if (node.fixedPosition) return;
 
   // ---------- Corner behavior ----------
   var isCorner =
@@ -530,6 +548,10 @@ CoSELayout.prototype.positionBoundaryNodes = function () {
       const right = bGraph.getRight();
       const top = bGraph.getTop();
       const bottom = bGraph.getBottom();
+      if (lNode.fixedPosition) {
+        lNode.putFixedPositionOnBoundary(left, right, top, bottom);
+        continue;
+      }
       lNode.putRandomlyOnBoundary(left, right, top, bottom);
     }
   }

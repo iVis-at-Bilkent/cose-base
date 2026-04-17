@@ -7,37 +7,37 @@
 		exports["coseBase"] = factory(require("layout-base"));
 	else
 		root["coseBase"] = factory(root["layoutBase"]);
-})(this, (__WEBPACK_EXTERNAL_MODULE__57__) => {
+})(this, (__WEBPACK_EXTERNAL_MODULE__730__) => {
 return /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 24
-(module, __unused_webpack_exports, __webpack_require__) {
+/***/ 45:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
 
 var coseBase = {};
 
-coseBase.layoutBase = __webpack_require__(57);
-coseBase.CoSEConstants = __webpack_require__(670);
-coseBase.CoSEEdge = __webpack_require__(246);
-coseBase.CoSEGraph = __webpack_require__(435);
-coseBase.CoSEGraphManager = __webpack_require__(504);
-coseBase.CoSELayout = __webpack_require__(201);
-coseBase.CoSENode = __webpack_require__(243);
-coseBase.ConstraintHandler = __webpack_require__(756);
+coseBase.layoutBase = __webpack_require__(730);
+coseBase.CoSEConstants = __webpack_require__(806);
+coseBase.CoSEEdge = __webpack_require__(767);
+coseBase.CoSEGraph = __webpack_require__(880);
+coseBase.CoSEGraphManager = __webpack_require__(578);
+coseBase.CoSELayout = __webpack_require__(765);
+coseBase.CoSENode = __webpack_require__(991);
+coseBase.ConstraintHandler = __webpack_require__(902);
 
 module.exports = coseBase;
 
-/***/ },
+/***/ }),
 
-/***/ 670
-(module, __unused_webpack_exports, __webpack_require__) {
+/***/ 806:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
 
-var FDLayoutConstants = (__webpack_require__(57).FDLayoutConstants);
+var FDLayoutConstants = (__webpack_require__(730).FDLayoutConstants);
 
 function CoSEConstants() {}
 
@@ -65,14 +65,14 @@ CoSEConstants.BOUNDARY_MAX_ITERATION = -1;
 
 module.exports = CoSEConstants;
 
-/***/ },
+/***/ }),
 
-/***/ 246
-(module, __unused_webpack_exports, __webpack_require__) {
+/***/ 767:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
 
-var FDLayoutEdge = (__webpack_require__(57).FDLayoutEdge);
+var FDLayoutEdge = (__webpack_require__(730).FDLayoutEdge);
 
 function CoSEEdge(source, target, vEdge) {
   FDLayoutEdge.call(this, source, target, vEdge);
@@ -85,14 +85,14 @@ for (var prop in FDLayoutEdge) {
 
 module.exports = CoSEEdge;
 
-/***/ },
+/***/ }),
 
-/***/ 435
-(module, __unused_webpack_exports, __webpack_require__) {
+/***/ 880:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
 
-var LGraph = (__webpack_require__(57).LGraph);
+var LGraph = (__webpack_require__(730).LGraph);
 
 function CoSEGraph(parent, graphMgr, vGraph) {
   LGraph.call(this, parent, graphMgr, vGraph);
@@ -106,14 +106,14 @@ for (var prop in LGraph) {
 
 module.exports = CoSEGraph;
 
-/***/ },
+/***/ }),
 
-/***/ 504
-(module, __unused_webpack_exports, __webpack_require__) {
+/***/ 578:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
 
-var LGraphManager = (__webpack_require__(57).LGraphManager);
+var LGraphManager = (__webpack_require__(730).LGraphManager);
 
 function CoSEGraphManager(layout) {
   LGraphManager.call(this, layout);
@@ -126,32 +126,32 @@ for (var prop in LGraphManager) {
 
 module.exports = CoSEGraphManager;
 
-/***/ },
+/***/ }),
 
-/***/ 201
-(module, __unused_webpack_exports, __webpack_require__) {
+/***/ 765:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
 
-var FDLayout = (__webpack_require__(57).FDLayout);
-var CoSEGraphManager = __webpack_require__(504);
-var CoSEGraph = __webpack_require__(435);
-var CoSENode = __webpack_require__(243);
-var CoSEEdge = __webpack_require__(246);
-var CoSEConstants = __webpack_require__(670);
-var ConstraintHandler = __webpack_require__(756);
-var IMath = (__webpack_require__(57).IMath);
-var FDLayoutConstants = (__webpack_require__(57).FDLayoutConstants);
-var LayoutConstants = (__webpack_require__(57).LayoutConstants);
-var Point = (__webpack_require__(57).Point);
-var PointD = (__webpack_require__(57).PointD);
-var DimensionD = (__webpack_require__(57).DimensionD);
-var Layout = (__webpack_require__(57).Layout);
-var Integer = (__webpack_require__(57).Integer);
-var IGeometry = (__webpack_require__(57).IGeometry);
-var LGraph = (__webpack_require__(57).LGraph);
-var Transform = (__webpack_require__(57).Transform);
-var LinkedList = (__webpack_require__(57).LinkedList);
+var FDLayout = (__webpack_require__(730).FDLayout);
+var CoSEGraphManager = __webpack_require__(578);
+var CoSEGraph = __webpack_require__(880);
+var CoSENode = __webpack_require__(991);
+var CoSEEdge = __webpack_require__(767);
+var CoSEConstants = __webpack_require__(806);
+var ConstraintHandler = __webpack_require__(902);
+var IMath = (__webpack_require__(730).IMath);
+var FDLayoutConstants = (__webpack_require__(730).FDLayoutConstants);
+var LayoutConstants = (__webpack_require__(730).LayoutConstants);
+var Point = (__webpack_require__(730).Point);
+var PointD = (__webpack_require__(730).PointD);
+var DimensionD = (__webpack_require__(730).DimensionD);
+var Layout = (__webpack_require__(730).Layout);
+var Integer = (__webpack_require__(730).Integer);
+var IGeometry = (__webpack_require__(730).IGeometry);
+var LGraph = (__webpack_require__(730).LGraph);
+var Transform = (__webpack_require__(730).Transform);
+var LinkedList = (__webpack_require__(730).LinkedList);
 
 function CoSELayout() {
   FDLayout.call(this);
@@ -234,6 +234,7 @@ CoSELayout.prototype.shouldApplyRepulsion = function (nodeA, nodeB) {
   // this is only the boundary exception
   if (nodeA.boundaryGraph && this.isNodeInBoundary(nodeB, nodeA)) return false;
   if (nodeB.boundaryGraph && this.isNodeInBoundary(nodeA, nodeB)) return false;
+  if (nodeA.fixedPosition && nodeB.fixedPosition) return false;
   return true;
 };
 
@@ -265,10 +266,18 @@ CoSELayout.prototype.calcRepulsionForce = function (nodeA, nodeB) {
       var childrenConstant = nodeA.noOfChildren * nodeB.noOfChildren / (nodeA.noOfChildren + nodeB.noOfChildren);
 
       // Apply forces on the two nodes
-      nodeA.repulsionForceX -= childrenConstant * repulsionForceX;
-      nodeA.repulsionForceY -= childrenConstant * repulsionForceY;
-      nodeB.repulsionForceX += childrenConstant * repulsionForceX;
-      nodeB.repulsionForceY += childrenConstant * repulsionForceY;
+      if (nodeA.fixedPosition && !nodeB.fixedPosition) {
+        nodeB.repulsionForceX += 2 * childrenConstant * repulsionForceX;
+        nodeB.repulsionForceY += 2 * childrenConstant * repulsionForceY;
+      } else if (nodeB.fixedPosition && !nodeA.fixedPosition) {
+        nodeA.repulsionForceX += 2 * childrenConstant * repulsionForceX;
+        nodeA.repulsionForceY += 2 * childrenConstant * repulsionForceY;
+      } else {
+        nodeA.repulsionForceX -= childrenConstant * repulsionForceX;
+        nodeA.repulsionForceY -= childrenConstant * repulsionForceY;
+        nodeB.repulsionForceX += childrenConstant * repulsionForceX;
+        nodeB.repulsionForceY += childrenConstant * repulsionForceY;
+      }
     } else // no overlap
     {
       // calculate distance
@@ -322,11 +331,6 @@ CoSELayout.prototype.moveBoundaryNodes = function () {
     var graph = node.boundaryGraph;
     if (!graph) continue;
 
-    //if (!node.location) continue;
-    var loc = node.location(); // e.g. "top", "bottom", "left", "right", "top-left", ...
-    //console.log("location: ", loc)
-    if (!loc) continue;
-
     var left = graph.getLeft();
     var right = graph.getRight();
     var top = graph.getTop();
@@ -341,45 +345,57 @@ CoSELayout.prototype.moveBoundaryNodes = function () {
     var corner = null;
     var T = 0;
 
-    switch (loc) {
-      case "top-left":
-        corner = "top-left";
-        break;
+    if (node.fixedPosition) {
+      side = node.fixedPosition.location;
+      T = node.fixedPosition.T !== undefined ? node.fixedPosition.T : 0.5;
+      if (side && side.indexOf('-') !== -1) {
+        corner = side;
+      }
+    } else {
 
-      case "top-right":
-        corner = "top-right";
-        break;
+      var loc = node.location(); // e.g. "top", "bottom", "left", "right", "top-left", ...
+      if (!loc) continue;
 
-      case "bottom-left":
-        corner = "bottom-left";
-        break;
+      switch (loc) {
+        case "top-left":
+          corner = "top-left";
+          break;
 
-      case "bottom-right":
-        corner = "bottom-right";
-        break;
+        case "top-right":
+          corner = "top-right";
+          break;
 
-      case "top":
-        side = "top";
-        T = (cx - left) / w;
-        break;
+        case "bottom-left":
+          corner = "bottom-left";
+          break;
 
-      case "bottom":
-        side = "bottom";
-        T = (cx - left) / w;
-        break;
+        case "bottom-right":
+          corner = "bottom-right";
+          break;
 
-      case "left":
-        side = "left";
-        T = (cy - top) / h;
-        break;
+        case "top":
+          side = "top";
+          T = (cx - left) / w;
+          break;
 
-      case "right":
-        side = "right";
-        T = (cy - top) / h;
-        break;
+        case "bottom":
+          side = "bottom";
+          T = (cx - left) / w;
+          break;
 
-      default:
-        continue;
+        case "left":
+          side = "left";
+          T = (cy - top) / h;
+          break;
+
+        case "right":
+          side = "right";
+          T = (cy - top) / h;
+          break;
+
+        default:
+          continue;
+      }
     }
 
     if (!corner) {
@@ -492,6 +508,8 @@ CoSELayout.prototype.adjustBoundaryForce = function (node) {
     it = 0;
     last = loc;
   }
+
+  if (node.fixedPosition) return;
 
   // ---------- Corner behavior ----------
   var isCorner = loc === 'top-left' || loc === 'top-right' || loc === 'bottom-left' || loc === 'bottom-right';
@@ -636,6 +654,10 @@ CoSELayout.prototype.positionBoundaryNodes = function () {
       var right = bGraph.getRight();
       var top = bGraph.getTop();
       var bottom = bGraph.getBottom();
+      if (lNode.fixedPosition) {
+        lNode.putFixedPositionOnBoundary(left, right, top, bottom);
+        continue;
+      }
       lNode.putRandomlyOnBoundary(left, right, top, bottom);
     }
   }
@@ -2564,20 +2586,21 @@ CoSELayout.prototype.findPlaceforPrunedNode = function (nodeData) {
 
 module.exports = CoSELayout;
 
-/***/ },
+/***/ }),
 
-/***/ 243
-(module, __unused_webpack_exports, __webpack_require__) {
+/***/ 991:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
 
-var FDLayoutNode = (__webpack_require__(57).FDLayoutNode);
-var IMath = (__webpack_require__(57).IMath);
-var RandomSeed = (__webpack_require__(57).RandomSeed);
+var FDLayoutNode = (__webpack_require__(730).FDLayoutNode);
+var IMath = (__webpack_require__(730).IMath);
+var RandomSeed = (__webpack_require__(730).RandomSeed);
 
 function CoSENode(gm, loc, size, vNode) {
   FDLayoutNode.call(this, gm, loc, size, vNode);
   this.boundaryGraph = null;
+  this.fixedPosition = null;
   this.last = null;
   this.iterationCountAtCorner = 0;
 }
@@ -2625,6 +2648,56 @@ CoSENode.prototype.putRandomlyOnBoundary = function (minX, maxX, minY, maxY) {
   this.setCenter(x, y);
 };
 
+CoSENode.prototype.putFixedPositionOnBoundary = function (minX, maxX, minY, maxY) {
+  var width = maxX - minX;
+  var height = maxY - minY;
+  var location = this.fixedPosition.location ? this.fixedPosition.location : 'top';
+  var T = this.fixedPosition.T ? this.fixedPosition.T : 0.5;
+
+  var x = void 0,
+      y = void 0;
+
+  switch (location) {
+    case 'top':
+      x = minX + width * T;
+      y = minY;
+      break;
+    case 'bottom':
+      x = minX + width * T;
+      y = maxY;
+      break;
+    case 'left':
+      x = minX;
+      y = minY + height * T;
+      break;
+    case 'right':
+      x = maxX;
+      y = minY + height * T;
+      break;
+    case 'top-left':
+      x = minX;
+      y = minY;
+      break;
+    case 'top-right':
+      x = maxX;
+      y = minY;
+      break;
+    case 'bottom-left':
+      x = minX;
+      y = maxY;
+      break;
+    case 'bottom-right':
+      x = maxX;
+      y = maxY;
+      break;
+    default:
+      x = minX + width * T;
+      y = minY;
+  }
+
+  this.setCenter(x, y);
+};
+
 CoSENode.prototype.location = function () {
   var graph = this.boundaryGraph;
   if (!graph) return 'none';
@@ -2660,22 +2733,27 @@ CoSENode.prototype.location = function () {
 };
 
 CoSENode.prototype.calculateDisplacement = function () {
-  var layout = this.graphManager.getLayout();
-  // this check is for compound nodes that contain fixed nodes
-  if (this.getChild() != null && this.fixedNodeWeight) {
-    this.displacementX += layout.coolingFactor * (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.fixedNodeWeight;
-    this.displacementY += layout.coolingFactor * (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.fixedNodeWeight;
+  if (this.boundaryGraph && this.fixedPosition) {
+    this.displacementX = 0;
+    this.displacementY = 0;
   } else {
-    this.displacementX += layout.coolingFactor * (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.noOfChildren;
-    this.displacementY += layout.coolingFactor * (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.noOfChildren;
-  }
+    var layout = this.graphManager.getLayout();
+    // this check is for compound nodes that contain fixed nodes
+    if (this.getChild() != null && this.fixedNodeWeight) {
+      this.displacementX += layout.coolingFactor * (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.fixedNodeWeight;
+      this.displacementY += layout.coolingFactor * (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.fixedNodeWeight;
+    } else {
+      this.displacementX += layout.coolingFactor * (this.springForceX + this.repulsionForceX + this.gravitationForceX) / this.noOfChildren;
+      this.displacementY += layout.coolingFactor * (this.springForceY + this.repulsionForceY + this.gravitationForceY) / this.noOfChildren;
+    }
 
-  if (Math.abs(this.displacementX) > layout.coolingFactor * layout.maxNodeDisplacement) {
-    this.displacementX = layout.coolingFactor * layout.maxNodeDisplacement * IMath.sign(this.displacementX);
-  }
+    if (Math.abs(this.displacementX) > layout.coolingFactor * layout.maxNodeDisplacement) {
+      this.displacementX = layout.coolingFactor * layout.maxNodeDisplacement * IMath.sign(this.displacementX);
+    }
 
-  if (Math.abs(this.displacementY) > layout.coolingFactor * layout.maxNodeDisplacement) {
-    this.displacementY = layout.coolingFactor * layout.maxNodeDisplacement * IMath.sign(this.displacementY);
+    if (Math.abs(this.displacementY) > layout.coolingFactor * layout.maxNodeDisplacement) {
+      this.displacementY = layout.coolingFactor * layout.maxNodeDisplacement * IMath.sign(this.displacementY);
+    }
   }
 
   if (this.boundaryGraph) {
@@ -2804,19 +2882,19 @@ CoSENode.prototype.isProcessed = function () {
 
 module.exports = CoSENode;
 
-/***/ },
+/***/ }),
 
-/***/ 756
-(module, __unused_webpack_exports, __webpack_require__) {
+/***/ 902:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-var CoSEConstants = __webpack_require__(670);
-var LinkedList = (__webpack_require__(57).LinkedList);
-var Matrix = (__webpack_require__(57).Matrix);
-var SVD = (__webpack_require__(57).SVD);
+var CoSEConstants = __webpack_require__(806);
+var LinkedList = (__webpack_require__(730).LinkedList);
+var Matrix = (__webpack_require__(730).Matrix);
+var SVD = (__webpack_require__(730).SVD);
 
 function ConstraintHandler() {}
 
@@ -3832,14 +3910,14 @@ ConstraintHandler.handleConstraints = function (layout) {
 
 module.exports = ConstraintHandler;
 
-/***/ },
+/***/ }),
 
-/***/ 57
-(module) {
+/***/ 730:
+/***/ ((module) => {
 
-module.exports = __WEBPACK_EXTERNAL_MODULE__57__;
+module.exports = __WEBPACK_EXTERNAL_MODULE__730__;
 
-/***/ }
+/***/ })
 
 /******/ 	});
 /************************************************************************/
@@ -3872,7 +3950,7 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__57__;
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __webpack_require__(24);
+/******/ 	var __webpack_exports__ = __webpack_require__(45);
 /******/ 	
 /******/ 	return __webpack_exports__;
 /******/ })()
