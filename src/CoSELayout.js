@@ -138,18 +138,13 @@ CoSELayout.prototype.calcRepulsionForce = function (nodeA, nodeB) {
     var childrenConstant = nodeA.noOfChildren * nodeB.noOfChildren / (nodeA.noOfChildren + nodeB.noOfChildren);
 
     // Apply forces on the two nodes
-    if (nodeA.fixedPosition && !nodeB.fixedPosition) {
-      nodeB.repulsionForceX += 2 * childrenConstant * repulsionForceX;
-      nodeB.repulsionForceY += 2 * childrenConstant * repulsionForceY;
-    } else if (nodeB.fixedPosition && !nodeA.fixedPosition) {
-      nodeA.repulsionForceX += 2 * childrenConstant * repulsionForceX;
-      nodeA.repulsionForceY += 2 * childrenConstant * repulsionForceY;
-    } else {
-      nodeA.repulsionForceX -= childrenConstant * repulsionForceX;
-      nodeA.repulsionForceY -= childrenConstant * repulsionForceY;
-      nodeB.repulsionForceX += childrenConstant * repulsionForceX;
-      nodeB.repulsionForceY += childrenConstant * repulsionForceY;
-    }
+    var repulsionMultiplier = 1;
+    if (nodeA.fixedPosition || nodeB.fixedPosition) repulsionMultiplier = 2;
+
+    nodeA.repulsionForceX -= childrenConstant * repulsionForceX * repulsionMultiplier;
+    nodeA.repulsionForceY -= childrenConstant * repulsionForceY * repulsionMultiplier;
+    nodeB.repulsionForceX += childrenConstant * repulsionForceX * repulsionMultiplier;
+    nodeB.repulsionForceY += childrenConstant * repulsionForceY * repulsionMultiplier;
   }
   else// no overlap
   {
