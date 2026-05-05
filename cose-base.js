@@ -257,8 +257,18 @@ CoSELayout.prototype.calcRepulsionForce = function (nodeA, nodeB) {
 
   if (rectA.intersects(rectB)) // two nodes overlap
     {
+      // Resolve boundary node overlaps along their movement axis only
+      var separationAxis = null;
+      if (nodeA.boundaryGraph && nodeB.boundaryGraph) {
+        if (nodeA.location() === 'top' || nodeA.location() === 'bottom') {
+          separationAxis = 'x';
+        } else {
+          separationAxis = 'y';
+        }
+      }
+
       // calculate separation amount in x and y directions
-      IGeometry.calcSeparationAmount(rectA, rectB, overlapAmount, FDLayoutConstants.DEFAULT_EDGE_LENGTH / 2.0);
+      IGeometry.calcSeparationAmount(rectA, rectB, overlapAmount, FDLayoutConstants.DEFAULT_EDGE_LENGTH / 2.0, separationAxis);
 
       repulsionForceX = 2 * overlapAmount[0];
       repulsionForceY = 2 * overlapAmount[1];
