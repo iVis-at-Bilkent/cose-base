@@ -106,6 +106,16 @@ CoSELayout.prototype.shouldApplyRepulsion = function(nodeA, nodeB) {
   return true;
 };
 
+// Determines whether an edge connects nodes across different compound containers, using the boundary parent node for boundary nodes
+CoSELayout.prototype.isInterGraphBoundaryEdge = function (edge) {
+  var source = edge.getSource();
+  var target = edge.getTarget();
+
+  var sourceParentNode = source.boundaryGraph ? source.boundaryGraph.getParent() : source.getOwner().getParent();
+  var targetParentNode = target.boundaryGraph ? target.boundaryGraph.getParent() : target.getOwner().getParent();
+
+  return sourceParentNode !== targetParentNode;
+}
 
 // OVERRIDE
 CoSELayout.prototype.calcRepulsionForce = function (nodeA, nodeB) {
@@ -859,6 +869,8 @@ CoSELayout.prototype.calcIdealEdgeLengths = function () {
     if (edge.isInterGraph) {
       source = edge.getSource();
       target = edge.getTarget();
+
+      if ((source.boundaryGraph || target.boundaryGraph) && !this.isInterGraphBoundaryEdge(edge)) continue;
 
       sizeOfSourceInLca = edge.getSourceInLca().getEstimatedSize();
       sizeOfTargetInLca = edge.getTargetInLca().getEstimatedSize();
